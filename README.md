@@ -1,4 +1,9 @@
-# Smartwatch-DTW-Attack
+# Smartwatch-DTW-Attack-Scalable
+* Git repository addressing the paper "Privacy at Risk: Exploiting Similarities in Health Data for Identity Inference" and further analysis with the purpose of scalability
+* Link to the paper: https://arxiv.org/abs/2308.08310
+
+## General Information:
+Smartwatches enable the efficient collection of health data that can be used for research and comprehensive analysis to improve the health of individuals. In addition to the analysis capabilities, ensuring privacy when handling health data is a critical concern as the collection and analysis of such data become pervasive. Since health data contains sensitive information, it should be handled with responsibility and is therefore often treated anonymously. However, also the data itself can be exploited to reveal information and break anonymity. We propose a novel similarity-based re-identification attack on time-series health data and thereby unveil a significant vulnerability. Despite privacy measures that remove identifying information, our attack demonstrates that a brief amount of various sensor data from a target individual is adequate to possibly identify them within a database of other samples, solely based on sensor-level similarities. In our example scenario, where data owners leverage health data from smartwatches, findings show that we are able to correctly link the target data in two out of three cases. User privacy is thus already inherently threatened by the data itself and even when removing personal information. 
 
 ## Dataset:
 Please download the WESAD dataset from https://uni-siegen.sciebo.de/s/HGdUkoNlW1Ub0Gx and save it unzipped under /dataset/WESAD

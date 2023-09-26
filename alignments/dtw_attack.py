@@ -2,9 +2,10 @@ from preprocessing.data_preparation import load_dataset, get_subject_list
 
 from typing import Dict, Tuple, List
 import pandas as pd
-from dtw import *
+from dtaidistance import dtw
 import os
 import json
+import time
 
 
 MAIN_PATH = os.path.abspath(os.getcwd())
@@ -145,8 +146,7 @@ def test_max_proportions(proportions: List[float], safety_proportion: float = 0.
     return valid_proportion
 
 
-def calculate_alignment(subject_id: int, method: str, proportion_test: float) \
-        -> Tuple[Dict[int, Dict[str, float]], Dict[int, Dict[str, float]]]:
+def calculate_alignment(subject_id: int, method: str, proportion_test: float) -> Dict[int, Dict[str, float]]:
     """
     Calculate DTW-Alignments for sensor data using Dynamic Time Warping
     :param subject_id: Specify which subject should be used as test subject
@@ -154,27 +154,23 @@ def calculate_alignment(subject_id: int, method: str, proportion_test: float) \
     :param proportion_test: Specify the test proportion 0.XX (float)
     :return: Tuple with Dictionaries of standard and normalized results
     """
-    results_normalized = dict()
     results_standard = dict()
     subject_data, labels = create_subject_data(method=method, proportion_test=proportion_test, subject_id=subject_id)
 
     for subject in subject_data["train"]:
         print("----Current subject: " + str(subject))
-        results_normalized.setdefault(subject, dict())
         results_standard.setdefault(subject, dict())
 
         for sensor in subject_data["train"][subject]:
             test = subject_data["test"][subject_id][sensor]
             train = subject_data["train"][subject][sensor]
+            test = test.values.flatten()
+            train = train.values.flatten()
 
-            alignment = dtw(train, test, keep_internals=False)
-            distance_normalized = alignment.normalizedDistance
-            distance_standard = alignment.distance
-
-            results_normalized[subject].setdefault(sensor, round(distance_normalized, 4))
+            distance_standard = dtw.distance_fast(train, test, use_pruning=True)
             results_standard[subject].setdefault(sensor, round(distance_standard, 4))
 
-    return results_normalized, results_standard
+    return results_standard
 
 
 def run_calculations(proportions: List[float], methods: List[str] = None, subject_ids: List[int] = None):
@@ -192,17 +188,18 @@ def run_calculations(proportions: List[float], methods: List[str] = None, subjec
     if test_max_proportions(proportions=proportions):
         print("Test proportion test successful: All proportions are valid")
 
-        for method in methods:
-            print("-Current method: " + str(method))
-            for proportion_test in proportions:
-                print("--Current test proportion: " + str(proportion_test))
+        for proportion_test in proportions:
+            start = time.perf_counter()
+            print("--Current test proportion: " + str(proportion_test))
+            for method in methods:
+                print("-Current method: " + str(method))
 
                 # Run DTW Calculations
                 for subject_id in subject_ids:
                     print("---Current id: " + str(subject_id))
 
-                    results_normalized, results_standard = calculate_alignment(subject_id=subject_id, method=method,
-                                                                               proportion_test=proportion_test)
+                    results_standard = calculate_alignment(subject_id=subject_id, method=method,
+                                                           proportion_test=proportion_test)
 
                     # Save results as json
                     try:
@@ -212,13 +209,8 @@ def run_calculations(proportions: List[float], methods: List[str] = None, subjec
                         path = os.path.join(path, "test=" + str(proportion_test))  # add /test=0.XX to path
                         os.makedirs(path, exist_ok=True)
 
-                        path_string_normalized = "/SW-DTW_results_normalized_" + str(method) + "_" + str(
-                            proportion_test) + "_S" + str(subject_id) + ".json"
                         path_string_standard = "/SW-DTW_results_standard_" + str(method) + "_" + str(
                             proportion_test) + "_S" + str(subject_id) + ".json"
-
-                        with open(path + path_string_normalized, "w", encoding="utf-8") as outfile:
-                            json.dump(results_normalized, outfile)
 
                         with open(path + path_string_standard, "w", encoding="utf-8") as outfile:
                             json.dump(results_standard, outfile)
@@ -226,15 +218,24 @@ def run_calculations(proportions: List[float], methods: List[str] = None, subjec
                         print("SW-DTW results saved at: " + str(path))
 
                     except FileNotFoundError:
-                        with open("/SW-DTW_results_normalized_" + str(method) + "_" + str(proportion_test) + "_S" +
-                                  str(subject_id) + ".json", "w", encoding="utf-8") as outfile:
-                            json.dump(results_normalized, outfile)
-
                         with open("/SW-DTW_results_standard_" + str(method) + "_" + str(proportion_test) + "_S" +
                                   str(subject_id) + ".json", "w", encoding="utf-8") as outfile:
                             json.dump(results_standard, outfile)
 
                         print("FileNotFoundError: results saved at working dir")
+
+            end = time.perf_counter()
+
+            # Save runtime as txt file
+            runtime_path = os.path.join(MAIN_PATH, "/out")
+            runtime_path = os.path.join(runtime_path, "/alignments")
+            runtime_path = os.path.join(runtime_path, "/runtime")
+            os.makedirs(runtime_path, exist_ok=True)
+
+            text_file = open(runtime_path, "w")
+            text = "Runtime: " + str(end - start)
+            text_file.write(text)
+            text_file.close()
 
     else:
         print("Please specify valid proportions!")
