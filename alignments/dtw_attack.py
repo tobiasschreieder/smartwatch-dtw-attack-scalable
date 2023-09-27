@@ -32,7 +32,7 @@ def get_proportions() -> List[float]:
     return PROPORTIONS_TEST
 
 
-def create_subject_data(method: str, proportion_test: float, subject_id: int) \
+def create_subject_data(method: str, proportion_test: float, subject_id: int, resample_factor: float = 1) \
         -> Tuple[Dict[str, Dict[int, Dict[str, pd.DataFrame]]], Dict[int, Dict[str, int]]]:
     """
     Create dictionary with all subjects and their sensor data as Dataframe split into train and test data
@@ -40,9 +40,10 @@ def create_subject_data(method: str, proportion_test: float, subject_id: int) \
     :param method: String to specify which method should be used (baseline / amusement / stress)
     :param proportion_test: Specify the test proportion 0.XX (float)
     :param subject_id: Specify which subject should be used as test subject
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Tuple with create subject_data and labels (containing label information)
     """
-    data_dict = load_dataset()
+    data_dict = load_dataset(resample_factor=resample_factor)
     subject_data = {"train": dict(), "test": dict(), "method": method}
     labels = dict()
 
@@ -109,14 +110,15 @@ def create_subject_data(method: str, proportion_test: float, subject_id: int) \
     return subject_data, labels
 
 
-def test_max_proportions(proportions: List[float], safety_proportion: float = 0.05) -> bool:
+def test_max_proportions(proportions: List[float], safety_proportion: float = 0.05, resample_factor: float = 1) -> bool:
     """
     Test all given test proportions if they are valid
     :param proportions: List with all test proportions
-    :param safety_proportion:
+    :param safety_proportion: Specify safety proportion that is not used
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Boolean -> False if there is at least one wrong proportion
     """
-    data_dict = load_dataset()  # read data_dict
+    data_dict = load_dataset(resample_factor=resample_factor)  # read data_dict
 
     # Calculate max_proportion
     min_method_length = 0
@@ -146,16 +148,19 @@ def test_max_proportions(proportions: List[float], safety_proportion: float = 0.
     return valid_proportion
 
 
-def calculate_alignment(subject_id: int, method: str, proportion_test: float) -> Dict[int, Dict[str, float]]:
+def calculate_alignment(subject_id: int, method: str, proportion_test: float, resample_factor: float = 1) \
+        -> Dict[int, Dict[str, float]]:
     """
     Calculate DTW-Alignments for sensor data using Dynamic Time Warping
     :param subject_id: Specify which subject should be used as test subject
     :param method: String to specify which method should be used (baseline / amusement / stress)
     :param proportion_test: Specify the test proportion 0.XX (float)
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Tuple with Dictionaries of standard and normalized results
     """
     results_standard = dict()
-    subject_data, labels = create_subject_data(method=method, proportion_test=proportion_test, subject_id=subject_id)
+    subject_data, labels = create_subject_data(method=method, proportion_test=proportion_test, subject_id=subject_id,
+                                               resample_factor=resample_factor)
 
     for subject in subject_data["train"]:
         print("----Current subject: " + str(subject))
@@ -173,10 +178,12 @@ def calculate_alignment(subject_id: int, method: str, proportion_test: float) ->
     return results_standard
 
 
-def run_calculations(proportions: List[float], methods: List[str] = None, subject_ids: List[int] = None):
+def run_calculations(proportions: List[float], resample_factor: float = 1, methods: List[str] = None,
+                     subject_ids: List[int] = None):
     """
     Run DTW-Calculations with all given Parameters and save results as json
     :param proportions: List with all test proportions that should be used (float)
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param methods:  List with all method that should be used -> "baseline" / "amusement" / "stress" (str)
     :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
     """
@@ -199,7 +206,8 @@ def run_calculations(proportions: List[float], methods: List[str] = None, subjec
                     print("---Current id: " + str(subject_id))
 
                     results_standard = calculate_alignment(subject_id=subject_id, method=method,
-                                                           proportion_test=proportion_test)
+                                                           proportion_test=proportion_test,
+                                                           resample_factor=resample_factor)
 
                     # Save results as json
                     try:

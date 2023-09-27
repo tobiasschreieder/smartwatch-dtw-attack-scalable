@@ -108,9 +108,10 @@ def preprocess_data():
         print("FileNotFoundError: Invalid directory structure! Please make sure that /dataset exists.")
 
 
-def load_dataset() -> Dict[int, pd.DataFrame]:
+def load_dataset(resample_factor: float = 1) -> Dict[int, pd.DataFrame]:
     """
     Load preprocessed dataset from /dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Dictionary with preprocessed data
     """
     data_dict = dict()
@@ -122,6 +123,13 @@ def load_dataset() -> Dict[int, pd.DataFrame]:
         print("FileNotFoundError: Invalid directory structure or data_dict.pickle does not exist.")
         preprocess_data()
         print("Generating data_dict.pickle from WESAD dataset!")
+        load_dataset(resample_factor=resample_factor)
+
+    for subject_id in data_dict:
+        for sensor in data_dict[subject_id]:
+            data_dict[subject_id][sensor] = scipy.signal.resample(data_dict[subject_id][[sensor]],
+                                                                  round(len(data_dict[subject_id][[sensor]]) /
+                                                                        resample_factor))
 
     return data_dict
 

@@ -315,8 +315,7 @@ def get_realistic_ranks_combinations(rank_method: str, combinations: List[List[s
 
     realistic_ranks_comb = dict()
     for subject_id in subject_ids:
-        results = load_results(subject_id=subject_id, method=method, proportion_test=proportion_test,
-                               normalized_data=True)
+        results = load_results(subject_id=subject_id, method=method, proportion_test=proportion_test)
         overall_ranks_comb = run_calculate_ranks_combinations(results=results, rank_method=rank_method,
                                                               combinations=combinations, weights=weights)
 

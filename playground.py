@@ -23,7 +23,7 @@ Example Calculations
 # plot_subject_data()
 
 """3. Calculate DTW-alignments and save results to /out/alignments"""
-# run_calculations(methods=["baseline", "amusement", "stress"], proportions=[0.15])
+# run_calculations(methods=["baseline", "amusement", "stress"], proportions=[0.15], resample_factor=1)
 
 """4. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
 # run_dtw_alignments(resample_factor=4)

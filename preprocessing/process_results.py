@@ -11,7 +11,7 @@ ALIGNMENT_PATH = os.path.join(OUT_PATH, "alignments")  # add /alignments to path
 PRECISION_PATH = os.path.join(OUT_PATH, "precision")  # add /precision to path
 
 
-def load_results(subject_id: int, method: str, proportion_test: float, normalized_data: bool = True) \
+def load_results(subject_id: int, method: str, proportion_test: float, normalized_data: bool = False) \
         -> Dict[str, Dict[str, float]]:
     """
     Load DTW-attack results from ../out/alignments/
@@ -27,11 +27,13 @@ def load_results(subject_id: int, method: str, proportion_test: float, normalize
         path = os.path.join(path, "test=" + str(proportion_test))  # add /test=0.XX to path
 
         if normalized_data:
-            path = path + "/SW-DTW_results_normalized_" + str(method) + "_" + str(proportion_test) + "_S" + str(
+            path_string = "SW-DTW_results_normalized_" + str(method) + "_" + str(proportion_test) + "_S" + str(
                 subject_id) + ".json"
+            path = os.path.join(path, path_string)
         else:
-            path = path + "/SW-DTW_results_standard_" + str(method) + "_" + str(proportion_test) + "_S" + str(
+            path_string = "SW-DTW_results_standard_" + str(method) + "_" + str(proportion_test) + "_S" + str(
                 subject_id) + ".json"
+            path = os.path.join(path, path_string)
 
         f = open(path, "r")
         results = json.loads(f.read())
