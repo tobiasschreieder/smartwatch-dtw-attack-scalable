@@ -215,6 +215,7 @@ def run_class_evaluation(rank_method: str = "score"):
     average_results, weighted_average_results = calculate_average_class_precisions(rank_method=rank_method)
     best_class_method = get_best_class_configuration(average_res=average_results,
                                                      weighted_average_res=weighted_average_results)
+
     best_k_parameters = calculate_best_k_parameters(rank_method=rank_method)
     best_average_k_parameters = calculate_best_average_k_parameters(rank_method=rank_method)
 

@@ -4,7 +4,6 @@ import pickle
 import pandas as pd
 import scipy.signal
 
-
 # Specify path
 MAIN_PATH = os.path.abspath(os.getcwd())
 DATA_PATH = os.path.join(MAIN_PATH, "dataset")  # add /dataset to path
@@ -25,6 +24,7 @@ class Subject:
     Preprocessing based on Gil-Martin et al. 2022: Human stress detection with wearable sensors using convolutional
     neural networks: https://ieeexplore.ieee.org/document/9669993
     """
+
     def __init__(self, data_path, subject_number):
         """
         Load WESAD dataset
@@ -108,16 +108,17 @@ def preprocess_data():
         print("FileNotFoundError: Invalid directory structure! Please make sure that /dataset exists.")
 
 
-def load_dataset(resample_factor: float = 1) -> Dict[int, pd.DataFrame]:
+def load_dataset(resample_factor: int = None) -> Dict[int, pd.DataFrame]:
     """
     Load preprocessed dataset from /dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Dictionary with preprocessed data
     """
     data_dict = dict()
+    data = dict()
     try:
         with open(DATA_PATH + '/data_dict.pickle', 'rb') as f:
-            data_dict = pickle.load(f)
+            data = pickle.load(f)
 
     except FileNotFoundError:
         print("FileNotFoundError: Invalid directory structure or data_dict.pickle does not exist.")
@@ -125,11 +126,28 @@ def load_dataset(resample_factor: float = 1) -> Dict[int, pd.DataFrame]:
         print("Generating data_dict.pickle from WESAD dataset!")
         load_dataset(resample_factor=resample_factor)
 
-    for subject_id in data_dict:
-        for sensor in data_dict[subject_id]:
-            data_dict[subject_id][sensor] = scipy.signal.resample(data_dict[subject_id][[sensor]],
-                                                                  round(len(data_dict[subject_id][[sensor]]) /
-                                                                        resample_factor))
+    if resample_factor is not None:
+        for subject_id in data:
+            sensor_data = data[subject_id]
+            label_data = data[subject_id]["label"]
+            sensor_data = sensor_data.drop("label", axis=1)
+            column_names = sensor_data.columns.values.tolist()
+
+            sensor_data = scipy.signal.resample(sensor_data, round(len(data[subject_id]) / resample_factor))
+            sensor_data = pd.DataFrame(data=sensor_data, columns=column_names)
+
+            label_data.index = [(1 / resample_factor) * i for i in range(len(label_data))]
+            label_data.index = pd.to_datetime(label_data.index, unit='s')
+
+            sensor_data.index = pd.to_datetime(sensor_data.index, unit='s')
+            sensor_data = sensor_data.join(label_data)
+            sensor_data['label'] = sensor_data['label'].fillna(method='ffill')
+            sensor_data.reset_index(drop=True, inplace=True)
+
+            data_dict.setdefault(subject_id, sensor_data)
+
+    else:
+        data_dict = data
 
     return data_dict
 
