@@ -109,13 +109,13 @@ def bold_maximum_precision(precision_comb: Dict[str, float], value: float) -> st
     return text
 
 
-def create_md_precision_combinations(rank_method: str, method: str, proportion_test: float, max_k: int = 15,
+def create_md_precision_combinations(rank_method: str, method: str, test_window_size: int, max_k: int = 15,
                                      subject_ids: List[int] = None, k_list: List[int] = None) -> str:
     """
     Create text for md-file with precision@k scores for all sensor combinations
     :param rank_method: Specify ranking-method ("rank", "score")
     :param method: Specify method ("baseline", "amusement", "stress")
-    :param proportion_test: Specify test-proportion
+    :param test_window_size: Specify test-window-size
     :param max_k: Specify maximum k for precision@k
     :param subject_ids: List with subject-ids; if None: all subjects are used
     :param k_list: Specify k parameters in precision tables
@@ -130,7 +130,7 @@ def create_md_precision_combinations(rank_method: str, method: str, proportion_t
 
     realistic_ranks_comb = get_realistic_ranks_combinations(rank_method=rank_method,
                                                             combinations=sensor_combinations, method=method,
-                                                            proportion_test=proportion_test, subject_ids=subject_ids)
+                                                            test_window_size=test_window_size, subject_ids=subject_ids)
     precision_comb_1 = calculate_precision_combinations(realistic_ranks_comb=realistic_ranks_comb, k=1)
 
     text += "| Precision@k | "
@@ -272,15 +272,15 @@ def create_md_precision_sensors(rank_method: str, average_method: str, results: 
 
 
 def create_md_precision_windows(rank_method: str, average_method: str, sensor_combination: str,
-                                results: Dict[int, Dict[float, float]], best_window: float,
+                                results: Dict[int, Dict[float, float]], best_window: int,
                                 best_k_parameters: Dict[float, int]) -> str:
     """
-    Create text for MD-file with results of window (test-proportion) evaluation
+    Create text for MD-file with results of window (test-window-size) evaluation
     :param rank_method: Specify rank-method ("score" or "rank")
     :param average_method: Specify averaging-method ("mean" or "weighted-mean)
     :param sensor_combination: Specify sensor-combination e.g. "acc+temp" (Choose best one)
     :param results: Results with precision values per class
-    :param best_window: Specify best window (test-proportion) e.g. 0.001
+    :param best_window: Specify best window (test-window-size) e.g. 0.001
     :param best_k_parameters: Specify best k parameters
     :return: String with MD text
     """
@@ -288,7 +288,7 @@ def create_md_precision_windows(rank_method: str, average_method: str, sensor_co
     text += "* Calculated with rank-method: '" + str(rank_method) + "' \n"
     text += "* Calculated with averaging-method: '" + str(average_method) + "' \n"
     text += "* Calculated with sensor-combination: '" + str(sensor_combination) + "' \n"
-    text += "* Preferred window-size: '" + str(best_window) + "' (decision based on smallest k) \n"
+    text += "* Preferred test-window-size: '" + str(best_window) + "' (decision based on smallest k) \n"
 
     text += "## Precision@k table: \n"
     text += "| k |"
@@ -314,7 +314,7 @@ def create_md_precision_windows(rank_method: str, average_method: str, sensor_co
 
 
 def create_md_precision_overall(results: Dict[int, Dict[str, float]], rank_method: str, average_method: str,
-                                sensor_combination: str, window: float,
+                                sensor_combination: str, window: str,
                                 weightings: Dict[str, Dict[int, List[Dict[str, float]]]],
                                 best_k_parameters: Dict[str, int]) -> str:
     """
@@ -323,7 +323,7 @@ def create_md_precision_overall(results: Dict[int, Dict[str, float]], rank_metho
     :param rank_method: Specify rank-method ("score" or "rank")
     :param average_method: Specify averaging-method ("mean" or "weighted-mean)
     :param sensor_combination: Specify sensor-combination e.g. "acc+temp" (Choose best one)
-    :param window: Specify best window-size (test-proportion) e.g. 0.001
+    :param window: Specify best window-size e.g. 10
     :param weightings: Specify best sensor-weightings
     :param best_k_parameters: Specify best k parameters
     :return: String with MD text
@@ -332,7 +332,7 @@ def create_md_precision_overall(results: Dict[int, Dict[str, float]], rank_metho
     text += "* Calculated with rank-method: '" + str(rank_method) + "' \n"
     text += "* Calculated with averaging-method: '" + str(average_method) + "' \n"
     text += "* Calculated with sensor-combination: '" + str(sensor_combination) + "' \n"
-    text += "* Calculated with window-size: '" + str(window) + "' \n"
+    text += "* Calculated with test-window-size: '" + str(window) + "' \n"
 
     text += "## Precision@k table: \n"
     text += "| k | DTW-results | sensor weighted | random guess |" + "\n"

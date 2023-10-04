@@ -11,27 +11,27 @@ ALIGNMENT_PATH = os.path.join(OUT_PATH, "alignments")  # add /alignments to path
 PRECISION_PATH = os.path.join(OUT_PATH, "precision")  # add /precision to path
 
 
-def load_results(subject_id: int, method: str, proportion_test: float, normalized_data: bool = False) \
+def load_results(subject_id: int, method: str, test_window_size: int, normalized_data: bool = False) \
         -> Dict[str, Dict[str, float]]:
     """
     Load DTW-attack results from ../out/alignments/
     :param subject_id: Specify subject
     :param method: Specify method ("baseline", "amusement", "stress")
-    :param proportion_test: Specify test-proportion
+    :param test_window_size: Specify test-window-size
     :param normalized_data: True if normalized results should be used
     :return: Dictionary with results
     """
     results = dict()
     try:
         path = os.path.join(ALIGNMENT_PATH, str(method))  # add /method to path
-        path = os.path.join(path, "test=" + str(proportion_test))  # add /test=0.XX to path
+        path = os.path.join(path, "test=" + str(test_window_size))  # add /test=X to path
 
         if normalized_data:
-            path_string = "SW-DTW_results_normalized_" + str(method) + "_" + str(proportion_test) + "_S" + str(
+            path_string = "SW-DTW_results_normalized_" + str(method) + "_" + str(test_window_size) + "_S" + str(
                 subject_id) + ".json"
             path = os.path.join(path, path_string)
         else:
-            path_string = "SW-DTW_results_standard_" + str(method) + "_" + str(proportion_test) + "_S" + str(
+            path_string = "SW-DTW_results_standard_" + str(method) + "_" + str(test_window_size) + "_S" + str(
                 subject_id) + ".json"
             path = os.path.join(path, path_string)
 
@@ -49,22 +49,22 @@ def load_results(subject_id: int, method: str, proportion_test: float, normalize
     return results
 
 
-def load_max_precision_results(method: str, proportion_test: float, k: int) \
+def load_max_precision_results(method: str, test_window_size: int, k: int) \
         -> Dict[str, Union[float, List[Dict[str, float]]]]:
     """
     Load max-precision results
     :param method: Specify method
-    :param proportion_test: Specify test-proportion
+    :param test_window_size: Specify test-window-size
     :param k: Specify k
     :return: Dictionary with results
     """
     results = dict()
     try:
         path = os.path.join(PRECISION_PATH, str(method))  # add /method to path
-        path = os.path.join(path, "test=" + str(proportion_test))  # add /test=0.XX to path
+        path = os.path.join(path, "test=" + str(test_window_size))  # add /test=0.XX to path
         path = os.path.join(path, "max-precision")  # add /max-precision to path
 
-        path = path + "/SW-DTW_max-precision_" + str(method) + "_" + str(proportion_test) + "_k=" + str(k) + ".json"
+        path = path + "/SW-DTW_max-precision_" + str(method) + "_" + str(test_window_size) + "_k=" + str(k) + ".json"
 
         f = open(path, "r")
         results = json.loads(f.read())

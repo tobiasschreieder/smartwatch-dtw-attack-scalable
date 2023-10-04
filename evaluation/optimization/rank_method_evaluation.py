@@ -1,4 +1,4 @@
-from alignments.dtw_attack import get_classes, get_proportions
+from alignments.dtw_attack import get_classes, get_windows
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.create_md_tables import create_md_precision_rank_method
@@ -25,7 +25,7 @@ def calculate_rank_method_precisions(subject_ids: List = None, k_list: List[int]
     """
     sensor_combinations = get_sensor_combinations()  # Get all sensor-combinations
     classes = get_classes()  # Get all classes
-    proportions_test = get_proportions()  # Get all test-proportions
+    test_window_sizes = get_windows()  # Get all test-window-sizes
     if k_list is None:
         k_list = [1, 3, 5]  # List with all k for precision@k that should be considered
 
@@ -34,15 +34,15 @@ def calculate_rank_method_precisions(subject_ids: List = None, k_list: List[int]
 
     class_results_dict = dict()
     for method in classes:
-        proportion_results_dict = dict()
-        for proportion_test in proportions_test:
+        window_results_dict = dict()
+        for test_window_size in test_window_sizes:
             results_sensor = dict()
             for k in k_list:
                 # Calculate realistic ranks with rank method "rank"
                 realistic_ranks_comb_rank = get_realistic_ranks_combinations(rank_method="rank",
                                                                              combinations=sensor_combinations,
                                                                              method=method,
-                                                                             proportion_test=proportion_test,
+                                                                             test_window_size=test_window_size,
                                                                              subject_ids=subject_ids)
                 # Calculate precision values with rank method "rank"
                 precision_comb_rank = calculate_precision_combinations(realistic_ranks_comb=realistic_ranks_comb_rank,
@@ -52,7 +52,7 @@ def calculate_rank_method_precisions(subject_ids: List = None, k_list: List[int]
                 realistic_ranks_comb_score = get_realistic_ranks_combinations(rank_method="score",
                                                                               combinations=sensor_combinations,
                                                                               method=method,
-                                                                              proportion_test=proportion_test,
+                                                                              test_window_size=test_window_size,
                                                                               subject_ids=subject_ids)
                 # Calculate precision values with rank method "score"
                 precision_comb_score = calculate_precision_combinations(realistic_ranks_comb=realistic_ranks_comb_score,
@@ -70,24 +70,24 @@ def calculate_rank_method_precisions(subject_ids: List = None, k_list: List[int]
                                               "score": sensor_combined_precision_score,
                                               "mean": sensor_combined_precision_mean})
 
-            proportion_results_dict.setdefault(proportion_test, results_sensor)
+            window_results_dict.setdefault(test_window_size, results_sensor)
 
-        # Calculate mean precisions over all test-proportions
-        results_proportions = dict()
+        # Calculate mean precisions over all test-window-sizes
+        results_windows = dict()
         for k in k_list:
             rank_precisions = list()
             score_precisions = list()
             mean_precisions = list()
-            for result in proportion_results_dict.values():
+            for result in window_results_dict.values():
                 rank_precisions.append(result[k]["rank"])
                 score_precisions.append(result[k]["score"])
                 mean_precisions.append(result[k]["mean"])
 
-            results_proportions.setdefault(k, {"rank": statistics.mean(rank_precisions),
-                                               "score": statistics.mean(score_precisions),
-                                               "mean": statistics.mean(mean_precisions)})
+            results_windows.setdefault(k, {"rank": statistics.mean(rank_precisions),
+                                           "score": statistics.mean(score_precisions),
+                                           "mean": statistics.mean(mean_precisions)})
 
-        class_results_dict.setdefault(method, results_proportions)
+        class_results_dict.setdefault(method, results_windows)
 
     # Calculate mean precisions over all classes
     results = dict()

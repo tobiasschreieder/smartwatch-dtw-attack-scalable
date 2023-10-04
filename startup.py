@@ -25,7 +25,7 @@ def main():
         plot_alignment_heatmap()
 
         """5. Calculate DTW-alignments and save results to /out/alignments"""
-        run_calculations(methods=["baseline", "amusement", "stress"], proportions=[0.0001, 0.001, 0.01, 0.05, 0.1])
+        run_calculations(methods=["baseline", "amusement", "stress"], test_window_sizes=[1, 10, 100])
 
         """6. Evaluate DTW-alignment results per subject; save MD-tables with distance and rank results and 
         realistic-rank-plots to /out/subject-plots"""

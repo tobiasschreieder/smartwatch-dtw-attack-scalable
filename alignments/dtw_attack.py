@@ -12,8 +12,7 @@ MAIN_PATH = os.path.abspath(os.getcwd())
 DATA_PATH = os.path.join(MAIN_PATH, "dataset")  # add /dataset to path
 
 CLASSES = ["baseline", "amusement", "stress"]  # All available classes
-# All calculated window-sizes (test-proportions)
-PROPORTIONS_TEST = [0.0001, 0.001, 0.01, 0.05, 0.1]
+WINDOWS = [1]  # All calculated window-sizes
 
 
 def get_classes() -> List[str]:
@@ -24,21 +23,21 @@ def get_classes() -> List[str]:
     return CLASSES
 
 
-def get_proportions() -> List[float]:
+def get_windows() -> List[int]:
     """
-    Get test-proportions
-    :return: List with all test-proportions
+    Get test-window-sizes
+    :return: List with all test-window-sizes
     """
-    return PROPORTIONS_TEST
+    return WINDOWS
 
 
-def create_subject_data(method: str, proportion_test: float, subject_id: int, resample_factor: float = 1) \
+def create_subject_data(method: str, test_window_size: int, subject_id: int, resample_factor: int = 1) \
         -> Tuple[Dict[str, Dict[int, Dict[str, pd.DataFrame]]], Dict[int, Dict[str, int]]]:
     """
     Create dictionary with all subjects and their sensor data as Dataframe split into train and test data
     Create dictionary with label information for test subject
     :param method: String to specify which method should be used (baseline / amusement / stress)
-    :param proportion_test: Specify the test proportion 0.XX (float)
+    :param test_window_size: Specify amount of windows (datapoints) in test set (int)
     :param subject_id: Specify which subject should be used as test subject
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Tuple with create subject_data and labels (containing label information)
@@ -75,18 +74,24 @@ def create_subject_data(method: str, proportion_test: float, subject_id: int, re
             else:
                 label_data = label_data[label_data.label == 1]  # Data for subject with label == 1 -> stress
 
-            test_data_amount = round(len(data_dict[subject]) * proportion_test)
-            method_proportion_test = test_data_amount / len(label_data)
+            data_start = label_data.iloc[:round(len(label_data) * 0.5), :]
+            data_end = label_data.iloc[round(len(label_data) * 0.5):, :]
 
-            data_start = label_data.iloc[round(len(label_data) * 0.5):, :]
-            data_end = label_data.iloc[:round(len(label_data) * 0.5), :]
+            # Create test and train data
+            if test_window_size % 2 == 0:
+                test_1 = data_start.iloc[(len(data_end) - round(test_window_size * 0.5)):, :]
+                test_2 = data_end.iloc[:round(test_window_size * 0.5), :]
+            elif test_window_size == 1:
+                test_1 = data_start.iloc[(len(data_end) - 1):, :]
+                test_2 = data_end.iloc[:0, :]
+            else:
+                test_1 = data_start.iloc[(len(data_end) - (round(test_window_size * 0.5))):, :]
+                test_2 = data_end.iloc[:(round(test_window_size * 0.5) - 1), :]
 
-            test_1 = data_end.iloc[round(len(data_end) * (1 - method_proportion_test)):, :]
-            test_2 = data_start.iloc[:round(len(data_start) * method_proportion_test), :]
             test = pd.concat([test_1, test_2])
-
             train = data_dict[subject].drop(test.index)
 
+            # Create labels dictionary
             for sensor in label_data:
                 test_subject = test[sensor].to_frame()
                 train_subject = train[sensor].to_frame()
@@ -110,24 +115,20 @@ def create_subject_data(method: str, proportion_test: float, subject_id: int, re
     return subject_data, labels
 
 
-def test_max_proportions(proportions: List[float], safety_proportion: float = 0.05, resample_factor: float = 1) -> bool:
+def test_max_window_size(test_window_sizes: List[int], resample_factor: int = None) \
+        -> bool:
     """
-    Test all given test proportions if they are valid
-    :param proportions: List with all test proportions
-    :param safety_proportion: Specify safety proportion that is not used
+    Test all given test window-sizes if they are valid
+    :param test_window_sizes: List with all test_window-sizes to be tested
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
-    :return: Boolean -> False if there is at least one wrong proportion
+    :return: Boolean -> False if there is at least one wrong test window-size
     """
     data_dict = load_dataset(resample_factor=resample_factor)  # read data_dict
 
-    # Calculate max_proportion
+    # Calculate max_window
     min_method_length = 0
-    min_overall_length = 0
 
     for subject, data in data_dict.items():
-        if min_overall_length == 0 or len(data) < min_overall_length:
-            min_overall_length = len(data)
-
         baseline_length = len(data[data.label == 0])
         amusement_length = len(data[data.label == 0.5])
         stress_length = len(data[data.label == 1])
@@ -136,30 +137,28 @@ def test_max_proportions(proportions: List[float], safety_proportion: float = 0.
         if min_method_length == 0 or min_method_subject_length < min_method_length:
             min_method_length = min_method_subject_length
 
-    max_proportion = round(min_method_length * (1 - safety_proportion) / min_overall_length, 4)
+    # Test all test-window-sizes
+    valid_windows = True
+    for test_window_size in test_window_sizes:
+        if test_window_size <= 0 or test_window_size > min_method_length:
+            valid_windows = False
+            print("Wrong test-window-size: " + str(test_window_size))
 
-    # Test all proportions
-    valid_proportion = True
-    for proportion in proportions:
-        if proportion <= 0.0 or proportion > max_proportion:
-            valid_proportion = False
-            print("Wrong proportion: " + str(proportion))
-
-    return valid_proportion
+    return valid_windows
 
 
-def calculate_alignment(subject_id: int, method: str, proportion_test: float, resample_factor: float = 1) \
+def calculate_alignment(subject_id: int, method: str, test_window_size: int, resample_factor: int = 1) \
         -> Dict[int, Dict[str, float]]:
     """
     Calculate DTW-Alignments for sensor data using Dynamic Time Warping
     :param subject_id: Specify which subject should be used as test subject
     :param method: String to specify which method should be used (baseline / amusement / stress)
-    :param proportion_test: Specify the test proportion 0.XX (float)
+    :param test_window_size: Specify amount of windows (datapoints) in test set (int)
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Tuple with Dictionaries of standard and normalized results
     """
     results_standard = dict()
-    subject_data, labels = create_subject_data(method=method, proportion_test=proportion_test, subject_id=subject_id,
+    subject_data, labels = create_subject_data(method=method, test_window_size=test_window_size, subject_id=subject_id,
                                                resample_factor=resample_factor)
 
     for subject in subject_data["train"]:
@@ -172,17 +171,17 @@ def calculate_alignment(subject_id: int, method: str, proportion_test: float, re
             test = test.values.flatten()
             train = train.values.flatten()
 
-            distance_standard = dtw.distance_fast(train, test, use_pruning=True)
+            distance_standard = dtw.distance_fast(train, test)
             results_standard[subject].setdefault(sensor, round(distance_standard, 4))
 
     return results_standard
 
 
-def run_calculations(proportions: List[float], resample_factor: float = 1, methods: List[str] = None,
+def run_calculations(test_window_sizes: List[int], resample_factor: int = 1, methods: List[str] = None,
                      subject_ids: List[int] = None):
     """
-    Run DTW-Calculations with all given Parameters and save results as json
-    :param proportions: List with all test proportions that should be used (float)
+    Run DTW-calculations with all given parameters and save results as json
+    :param test_window_sizes: List with all test windows that should be used (int)
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param methods:  List with all method that should be used -> "baseline" / "amusement" / "stress" (str)
     :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
@@ -192,21 +191,21 @@ def run_calculations(proportions: List[float], resample_factor: float = 1, metho
     if methods is None:
         methods = get_classes()
 
-    if test_max_proportions(proportions=proportions):
-        print("Test proportion test successful: All proportions are valid")
+    if test_max_window_size(test_window_sizes=test_window_sizes):
+        print("Test-window-size test successful: All test-window-sizes are valid")
 
-        for proportion_test in proportions:
+        for test_window_size in test_window_sizes:
             start = time.perf_counter()
-            print("--Current test proportion: " + str(proportion_test))
+            print("-Current window-size: " + str(test_window_size))
             for method in methods:
-                print("-Current method: " + str(method))
+                print("--Current method: " + str(method))
 
                 # Run DTW Calculations
                 for subject_id in subject_ids:
                     print("---Current id: " + str(subject_id))
 
                     results_standard = calculate_alignment(subject_id=subject_id, method=method,
-                                                           proportion_test=proportion_test,
+                                                           test_window_size=test_window_size,
                                                            resample_factor=resample_factor)
 
                     # Save results as json
@@ -214,11 +213,11 @@ def run_calculations(proportions: List[float], resample_factor: float = 1, metho
                         path = os.path.join(MAIN_PATH, "/out")  # add /out to path
                         path = os.path.join(path, "/alignments")  # add /alignments to path
                         path = os.path.join(path, str(method))  # add /method to path
-                        path = os.path.join(path, "test=" + str(proportion_test))  # add /test=0.XX to path
+                        path = os.path.join(path, "test=" + str(test_window_size))  # add /test=X to path
                         os.makedirs(path, exist_ok=True)
 
                         path_string_standard = "/SW-DTW_results_standard_" + str(method) + "_" + str(
-                            proportion_test) + "_S" + str(subject_id) + ".json"
+                            test_window_size) + "_S" + str(subject_id) + ".json"
 
                         with open(path + path_string_standard, "w", encoding="utf-8") as outfile:
                             json.dump(results_standard, outfile)
@@ -226,7 +225,7 @@ def run_calculations(proportions: List[float], resample_factor: float = 1, metho
                         print("SW-DTW results saved at: " + str(path))
 
                     except FileNotFoundError:
-                        with open("/SW-DTW_results_standard_" + str(method) + "_" + str(proportion_test) + "_S" +
+                        with open("/SW-DTW_results_standard_" + str(method) + "_" + str(test_window_size) + "_S" +
                                   str(subject_id) + ".json", "w", encoding="utf-8") as outfile:
                             json.dump(results_standard, outfile)
 
@@ -246,4 +245,4 @@ def run_calculations(proportions: List[float], resample_factor: float = 1, metho
             text_file.close()
 
     else:
-        print("Please specify valid proportions!")
+        print("Please specify valid window-sizes!")

@@ -1,4 +1,4 @@
-from alignments.dtw_attack import get_classes, get_proportions
+from alignments.dtw_attack import get_classes, get_windows
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.create_md_tables import create_md_precision_windows
@@ -21,7 +21,7 @@ def calculate_window_precisions(rank_method: str = "score", average_method: str 
                                 sensor_combination=None, subject_ids: List = None, k_list: List[int] = None) \
         -> Dict[int, Dict[float, float]]:
     """
-    Calculate precisions per test-proportion ("baseline", "amusement", "stress"), mean over sensors and test-proportions
+    Calculate precisions per test-window-size, mean over sensors and test-window-size
     :param rank_method: Specify rank-method "score" or "rank" (use beste rank-method)
     :param average_method: Specify averaging-method "mean" or "weighted-mean" (Choose best one)
     :param sensor_combination: Specify sensor-combination e.g. [["bvp", "acc", "temp"]] (Choose best on)
@@ -31,7 +31,7 @@ def calculate_window_precisions(rank_method: str = "score", average_method: str 
     """
 
     classes = get_classes()  # Get all classes
-    proportions_test = get_proportions()  # Get all test-proportions
+    windows_test = get_windows()  # Get all test-windows
     if k_list is None:
         k_list = [1, 3, 5]  # List with all k for precision@k that should be considered
     class_distributions = get_class_distribution()  # Get class distributions
@@ -41,8 +41,8 @@ def calculate_window_precisions(rank_method: str = "score", average_method: str 
     if sensor_combination is None:
         sensor_combination = [["bvp", "eda", "acc", "temp"]]
 
-    proportion_results_dict = dict()
-    for proportion_test in proportions_test:
+    window_results_dict = dict()
+    for test_window_size in windows_test:
         results_class = dict()
         for k in k_list:
             results_class.setdefault(k, dict())
@@ -51,7 +51,7 @@ def calculate_window_precisions(rank_method: str = "score", average_method: str 
                 realistic_ranks_comb = get_realistic_ranks_combinations(rank_method=rank_method,
                                                                         combinations=sensor_combination,
                                                                         method=method,
-                                                                        proportion_test=proportion_test,
+                                                                        test_window_size=test_window_size,
                                                                         subject_ids=subject_ids)
                 # Calculate precision values with rank-method
                 precision_comb = calculate_precision_combinations(realistic_ranks_comb=realistic_ranks_comb, k=k)
@@ -59,11 +59,11 @@ def calculate_window_precisions(rank_method: str = "score", average_method: str 
                 # Save results in dictionary
                 results_class[k].setdefault(method, statistics.mean(precision_comb.values()))
 
-        proportion_results_dict.setdefault(proportion_test, results_class)
+        window_results_dict.setdefault(test_window_size, results_class)
 
     # Calculate mean over classes
     results = dict()
-    for proportion in proportions_test:
+    for test_window_size in windows_test:
         for k in k_list:
             results.setdefault(k, dict())
 
@@ -71,16 +71,16 @@ def calculate_window_precisions(rank_method: str = "score", average_method: str 
             if average_method == "mean":
                 precision_class_list = list()
                 for method in classes:
-                    precision_class_list.append(proportion_results_dict[proportion][k][method])
-                results[k].setdefault(proportion, round(statistics.mean(precision_class_list), 3))
+                    precision_class_list.append(window_results_dict[test_window_size][k][method])
+                results[k].setdefault(test_window_size, round(statistics.mean(precision_class_list), 3))
 
             # averaging method "weighted mean" -> weighted mean
             else:
                 precision_class_list = list()
                 for method in classes:
-                    precision_class_list.append(proportion_results_dict[proportion][k][method] *
+                    precision_class_list.append(window_results_dict[test_window_size][k][method] *
                                                 class_distributions[method])
-                results[k].setdefault(proportion, round(sum(precision_class_list), 3))
+                results[k].setdefault(test_window_size, round(sum(precision_class_list), 3))
 
     return results
 
@@ -140,13 +140,13 @@ def plot_window_precisions(results: Dict[int, Dict[float, float]], k_list: List[
     plt.close()
 
 
-def get_best_window_configuration(res: Dict[int, Dict[float, float]]) -> float:
+def get_best_window_configuration(res: Dict[int, Dict[int, float]]) -> int:
     """
-    Calculate best window configuration (test-proportion) from given results
+    Calculate best window configuration (test-window-size) from given results
     :param res: Dictionary with results
     :return: String with best window-size
     """
-    def get_best_window(windows: Dict[float, float]) -> List[float]:
+    def get_best_window(windows: Dict[int, float]) -> List[int]:
         """
         Get window with maximum precision score
         :param windows: Dictionary with all windows and precision scores

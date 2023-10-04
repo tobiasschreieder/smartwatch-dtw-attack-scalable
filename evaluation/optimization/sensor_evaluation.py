@@ -1,4 +1,4 @@
-from alignments.dtw_attack import get_classes, get_proportions
+from alignments.dtw_attack import get_classes, get_windows
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.optimization.class_evaluation import get_class_distribution
@@ -43,7 +43,7 @@ def string_to_list(input_string: str) -> List[List[str]]:
 def calculate_sensor_precisions(rank_method: str = "score", average_method: str = "weighted-mean",
                                 subject_ids: List[int] = None, k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
     """
-    Calculate precisions per sensor-combination, mean over classes and test-proportions
+    Calculate precisions per sensor-combination, mean over classes and test-window-sizes
     :param rank_method: Specify rank-method "score" or "rank" (Choose best one)
     :param average_method: Specify averaging-method "mean" or "weighted-mean" (Choose best one)
     :param subject_ids: Specify subject-ids, if None: all subjects are used
@@ -52,7 +52,7 @@ def calculate_sensor_precisions(rank_method: str = "score", average_method: str 
     """
     sensor_combinations = get_sensor_combinations()  # Get all sensor-combinations
     classes = get_classes()  # Get all classes
-    proportions_test = get_proportions()  # Get all test-proportions
+    test_window_sizes = get_windows()  # Get all test-window-sizes
     if k_list is None:
         k_list = [1, 3, 5]  # List with all k for precision@k that should be considered
     class_distributions = get_class_distribution()  # Get class distributions
@@ -60,8 +60,8 @@ def calculate_sensor_precisions(rank_method: str = "score", average_method: str 
     if subject_ids is None:
         subject_ids = get_subject_list()
 
-    proportion_results_dict = dict()
-    for proportion_test in proportions_test:
+    window_results_dict = dict()
+    for test_window_size in test_window_sizes:
         results_class = dict()
         for k in k_list:
             results_class.setdefault(k, dict())
@@ -70,7 +70,7 @@ def calculate_sensor_precisions(rank_method: str = "score", average_method: str 
                 realistic_ranks_comb = get_realistic_ranks_combinations(rank_method=rank_method,
                                                                         combinations=sensor_combinations,
                                                                         method=method,
-                                                                        proportion_test=proportion_test,
+                                                                        test_window_size=test_window_size,
                                                                         subject_ids=subject_ids)
                 # Calculate precision values with rank-method
                 precision_comb = calculate_precision_combinations(realistic_ranks_comb=realistic_ranks_comb, k=k)
@@ -78,28 +78,28 @@ def calculate_sensor_precisions(rank_method: str = "score", average_method: str 
                 # Save results in dictionary
                 results_class[k].setdefault(method, precision_comb)
 
-        proportion_results_dict.setdefault(proportion_test, results_class)
+        window_results_dict.setdefault(test_window_size, results_class)
 
-    # Calculate mean over test-proportions and classes
+    # Calculate mean over test-windows and classes
     results = dict()
     for sensor in sensor_combinations:
         sensor = list_to_string(input_list=sensor)
         for k in k_list:
             results.setdefault(k, dict())
             precision_k_list = list()
-            for proportion in proportion_results_dict:
+            for test_window_size in window_results_dict:
                 precision_class_list = list()
 
                 # averaging method "mean" -> unweighted mean
                 if average_method == "mean":
                     for method in classes:
-                        precision_class_list.append(proportion_results_dict[proportion][k][method][sensor])
+                        precision_class_list.append(window_results_dict[test_window_size][k][method][sensor])
                     precision_k_list.append(statistics.mean(precision_class_list))
 
                 # averaging method "weighted mean" -> weighted mean
                 else:
                     for method in classes:
-                        precision_class_list.append(proportion_results_dict[proportion][k][method][sensor] *
+                        precision_class_list.append(window_results_dict[test_window_size][k][method][sensor] *
                                                     class_distributions[method])
                     precision_k_list.append(sum(precision_class_list))
 

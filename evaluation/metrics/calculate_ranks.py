@@ -129,13 +129,13 @@ def realistic_rank(overall_ranks: Dict[str, int], subject_id: int) -> int:
     return realistic_rank
 
 
-def get_realistic_ranks(rank_method: str, method: str, proportion_test: float, subject_ids: List[int] = None) \
+def get_realistic_ranks(rank_method: str, method: str, test_window_size: int, subject_ids: List[int] = None) \
         -> List[int]:
     """
     Get list with sorted realistic ranks
     :param rank_method: Specify ranking method ("rank" or "score")
     :param method: Specify method of results ("baseline", "amusement", "stress")
-    :param proportion_test: Specify test-proportion
+    :param test_window_size: Specify test-window-size
     :param subject_ids: List with subject-ids; if None = all subjects are used
     :return: List with sorted realistic ranks
     """
@@ -144,7 +144,7 @@ def get_realistic_ranks(rank_method: str, method: str, proportion_test: float, s
 
     real_ranks = list()
     for subject in subject_ids:
-        results = load_results(subject_id=subject, method=method, proportion_test=proportion_test)
+        results = load_results(subject_id=subject, method=method, test_window_size=test_window_size)
         overall_ranks, individual_ranks = run_calculate_ranks(results, rank_method)
 
         real_rank = realistic_rank(overall_ranks, subject)
@@ -296,14 +296,14 @@ def run_calculate_ranks_combinations(results: Dict[str, Dict[str, float]], rank_
 
 
 def get_realistic_ranks_combinations(rank_method: str, combinations: List[List[str]], method: str,
-                                     proportion_test: float, subject_ids: List[int] = None,
+                                     test_window_size: int, subject_ids: List[int] = None,
                                      weights: Dict[str, float] = None) -> Dict[str, List[int]]:
     """
     Get realistic ranks for sensor combination results
     :param rank_method: Choose ranking method ("rank", "score", "max")
     :param combinations: Specify sensor combinations
     :param method: Specify DTW-method ("baseline", "amusement", "stress")
-    :param proportion_test: Specify test-proportion
+    :param test_window_size: Specify test-window-size
     :param subject_ids: Specify subjects if needed; ignore if all subjects should be used
     :param weights: Specify weights
     :return: Dictionary with realistic ranks for subjects
@@ -315,7 +315,7 @@ def get_realistic_ranks_combinations(rank_method: str, combinations: List[List[s
 
     realistic_ranks_comb = dict()
     for subject_id in subject_ids:
-        results = load_results(subject_id=subject_id, method=method, proportion_test=proportion_test)
+        results = load_results(subject_id=subject_id, method=method, test_window_size=test_window_size)
         overall_ranks_comb = run_calculate_ranks_combinations(results=results, rank_method=rank_method,
                                                               combinations=combinations, weights=weights)
 
