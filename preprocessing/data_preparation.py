@@ -2,7 +2,7 @@ from typing import Dict, List
 import os
 import pickle
 import pandas as pd
-import scipy.signal
+from scipy import signal
 
 # Specify path
 MAIN_PATH = os.path.abspath(os.getcwd())
@@ -63,11 +63,11 @@ class Subject:
         temp_signal = wrist_data['TEMP'][:, 0]
 
         # Upsampling data to match BVP data sampling rate using fourier method as described in Paper/dataset
-        eda_upsampled = scipy.signal.resample(eda_signal, len(bvp_signal))
-        temp_upsampled = scipy.signal.resample(temp_signal, len(bvp_signal))
-        acc_x_upsampled = scipy.signal.resample(acc_x_signal, len(bvp_signal))
-        acc_y_upsampled = scipy.signal.resample(acc_y_signal, len(bvp_signal))
-        acc_z_upsampled = scipy.signal.resample(acc_z_signal, len(bvp_signal))
+        eda_upsampled = signal.resample(eda_signal, len(bvp_signal))
+        temp_upsampled = signal.resample(temp_signal, len(bvp_signal))
+        acc_x_upsampled = signal.resample(acc_x_signal, len(bvp_signal))
+        acc_y_upsampled = signal.resample(acc_y_signal, len(bvp_signal))
+        acc_z_upsampled = signal.resample(acc_z_signal, len(bvp_signal))
         label_df = pd.DataFrame(self.labels, columns=['label'])
         label_df.index = [(1 / 700) * i for i in range(len(label_df))]  # 700 is the sampling rate of the label
         label_df.index = pd.to_datetime(label_df.index, unit='s')
@@ -133,7 +133,7 @@ def load_dataset(resample_factor: int = None) -> Dict[int, pd.DataFrame]:
             sensor_data = sensor_data.drop("label", axis=1)
             column_names = sensor_data.columns.values.tolist()
 
-            sensor_data = scipy.signal.resample(sensor_data, round(len(data[subject_id]) / resample_factor))
+            sensor_data = signal.resample(sensor_data, round(len(data[subject_id]) / resample_factor))
             sensor_data = pd.DataFrame(data=sensor_data, columns=column_names)
 
             label_data.index = [(1 / resample_factor) * i for i in range(len(label_data))]

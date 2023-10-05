@@ -12,7 +12,7 @@ MAIN_PATH = os.path.abspath(os.getcwd())
 DATA_PATH = os.path.join(MAIN_PATH, "dataset")  # add /dataset to path
 
 CLASSES = ["baseline", "amusement", "stress"]  # All available classes
-WINDOWS = [1]  # All calculated window-sizes
+WINDOWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 50, 100, 500, 1000]  # All calculated window-sizes
 
 
 def get_classes() -> List[str]:
