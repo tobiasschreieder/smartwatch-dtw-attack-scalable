@@ -31,7 +31,8 @@ def get_windows() -> List[int]:
     return WINDOWS
 
 
-def create_subject_data(method: str, test_window_size: int, subject_id: int, resample_factor: int = 1) \
+def create_subject_data(method: str, test_window_size: int, subject_id: int, additional_windows: int = 10,
+                        resample_factor: int = 1) \
         -> Tuple[Dict[str, Dict[int, Dict[str, pd.DataFrame]]], Dict[int, Dict[str, int]]]:
     """
     Create dictionary with all subjects and their sensor data as Dataframe split into train and test data
@@ -39,6 +40,7 @@ def create_subject_data(method: str, test_window_size: int, subject_id: int, res
     :param method: String to specify which method should be used (baseline / amusement / stress)
     :param test_window_size: Specify amount of windows (datapoints) in test set (int)
     :param subject_id: Specify which subject should be used as test subject
+    :param additional_windows: Specify amount of additional windows to be removed around test-window
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Tuple with create subject_data and labels (containing label information)
     """
@@ -78,18 +80,28 @@ def create_subject_data(method: str, test_window_size: int, subject_id: int, res
             data_end = label_data.iloc[round(len(label_data) * 0.5):, :]
 
             # Create test and train data
+            amount_remove_windows = round(test_window_size * 0.5) + additional_windows
             if test_window_size % 2 == 0:
                 test_1 = data_start.iloc[(len(data_end) - round(test_window_size * 0.5)):, :]
                 test_2 = data_end.iloc[:round(test_window_size * 0.5), :]
+                remove_1 = data_start.iloc[(len(data_end) - amount_remove_windows):, :]
+                remove_2 = data_end.iloc[:amount_remove_windows, :]
+
             elif test_window_size == 1:
                 test_1 = data_start.iloc[(len(data_end) - 1):, :]
                 test_2 = data_end.iloc[:0, :]
+                remove_1 = data_start.iloc[(len(data_end) - (1 + additional_windows)):, :]
+                remove_2 = data_end.iloc[:amount_remove_windows, :]
+
             else:
                 test_1 = data_start.iloc[(len(data_end) - (round(test_window_size * 0.5))):, :]
                 test_2 = data_end.iloc[:(round(test_window_size * 0.5) - 1), :]
+                remove_1 = data_start.iloc[(len(data_end) - amount_remove_windows):, :]
+                remove_2 = data_end.iloc[:(amount_remove_windows - 1), :]
 
             test = pd.concat([test_1, test_2])
-            train = data_dict[subject].drop(test.index)
+            remove = pd.concat([remove_1, remove_2])
+            train = data_dict[subject].drop(remove.index)
 
             # Create labels dictionary
             for sensor in label_data:
@@ -115,18 +127,19 @@ def create_subject_data(method: str, test_window_size: int, subject_id: int, res
     return subject_data, labels
 
 
-def test_max_window_size(test_window_sizes: List[int], resample_factor: int = None) \
+def test_max_window_size(test_window_sizes: List[int], additional_windows: int, resample_factor: int = None) \
         -> bool:
     """
     Test all given test window-sizes if they are valid
     :param test_window_sizes: List with all test_window-sizes to be tested
+    :param additional_windows: Specify amount of additional windows to be removed around test-window
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Boolean -> False if there is at least one wrong test window-size
     """
     data_dict = load_dataset(resample_factor=resample_factor)  # read data_dict
 
     # Calculate max_window
-    min_method_length = 0
+    min_method_length = additional_windows * 2
 
     for subject, data in data_dict.items():
         baseline_length = len(data[data.label == 0])
@@ -134,7 +147,7 @@ def test_max_window_size(test_window_sizes: List[int], resample_factor: int = No
         stress_length = len(data[data.label == 1])
         min_method_subject_length = min(baseline_length, amusement_length, stress_length)
 
-        if min_method_length == 0 or min_method_subject_length < min_method_length:
+        if min_method_length == (additional_windows * 2) or min_method_subject_length < min_method_length:
             min_method_length = min_method_subject_length
 
     # Test all test-window-sizes
@@ -147,19 +160,20 @@ def test_max_window_size(test_window_sizes: List[int], resample_factor: int = No
     return valid_windows
 
 
-def calculate_alignment(subject_id: int, method: str, test_window_size: int, resample_factor: int = 1) \
-        -> Dict[int, Dict[str, float]]:
+def calculate_alignment(subject_id: int, method: str, test_window_size: int, resample_factor: int = 1,
+                        additional_windows: int = 10) -> Dict[int, Dict[str, float]]:
     """
     Calculate DTW-Alignments for sensor data using Dynamic Time Warping
     :param subject_id: Specify which subject should be used as test subject
     :param method: String to specify which method should be used (baseline / amusement / stress)
     :param test_window_size: Specify amount of windows (datapoints) in test set (int)
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param additional_windows: Specify amount of additional windows to be removed around test-window
     :return: Tuple with Dictionaries of standard and normalized results
     """
     results_standard = dict()
     subject_data, labels = create_subject_data(method=method, test_window_size=test_window_size, subject_id=subject_id,
-                                               resample_factor=resample_factor)
+                                               additional_windows=additional_windows, resample_factor=resample_factor)
 
     for subject in subject_data["train"]:
         print("----Current subject: " + str(subject))
@@ -177,12 +191,13 @@ def calculate_alignment(subject_id: int, method: str, test_window_size: int, res
     return results_standard
 
 
-def run_calculations(test_window_sizes: List[int], resample_factor: int = 1, methods: List[str] = None,
-                     subject_ids: List[int] = None):
+def run_calculations(test_window_sizes: List[int], resample_factor: int = 1, additional_windows: int = 10,
+                     methods: List[str] = None, subject_ids: List[int] = None):
     """
     Run DTW-calculations with all given parameters and save results as json
     :param test_window_sizes: List with all test windows that should be used (int)
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param additional_windows: Specify amount of additional windows to be removed around test-window
     :param methods:  List with all method that should be used -> "baseline" / "amusement" / "stress" (str)
     :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
     """
@@ -191,7 +206,7 @@ def run_calculations(test_window_sizes: List[int], resample_factor: int = 1, met
     if methods is None:
         methods = get_classes()
 
-    if test_max_window_size(test_window_sizes=test_window_sizes):
+    if test_max_window_size(test_window_sizes=test_window_sizes, additional_windows=additional_windows):
         print("Test-window-size test successful: All test-window-sizes are valid")
 
         for test_window_size in test_window_sizes:
@@ -206,6 +221,7 @@ def run_calculations(test_window_sizes: List[int], resample_factor: int = 1, met
 
                     results_standard = calculate_alignment(subject_id=subject_id, method=method,
                                                            test_window_size=test_window_size,
+                                                           additional_windows=additional_windows,
                                                            resample_factor=resample_factor)
 
                     # Save results as json
