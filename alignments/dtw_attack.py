@@ -80,7 +80,8 @@ def create_subject_data(method: str, test_window_size: int, subject_id: int, add
             data_end = label_data.iloc[round(len(label_data) * 0.5):, :]
 
             # Create test and train data
-            amount_remove_windows = round(test_window_size * 0.5) + additional_windows
+            amount_remove_windows = max(1 + int(round(test_window_size * 0.5)),
+                                        int((round(test_window_size * 0.5) + additional_windows) / resample_factor))
             if test_window_size % 2 == 0:
                 test_1 = data_start.iloc[(len(data_end) - round(test_window_size * 0.5)):, :]
                 test_2 = data_end.iloc[:round(test_window_size * 0.5), :]
@@ -90,13 +91,15 @@ def create_subject_data(method: str, test_window_size: int, subject_id: int, add
             elif test_window_size == 1:
                 test_1 = data_start.iloc[(len(data_end) - 1):, :]
                 test_2 = data_end.iloc[:0, :]
-                remove_1 = data_start.iloc[(len(data_end) - (1 + additional_windows)):, :]
+                remove_1 = data_start.iloc[(len(data_end) - (1 + max(1, int(additional_windows / resample_factor)))
+                                            ):, :]
                 remove_2 = data_end.iloc[:amount_remove_windows, :]
 
             else:
                 test_1 = data_start.iloc[(len(data_end) - (round(test_window_size * 0.5))):, :]
                 test_2 = data_end.iloc[:(round(test_window_size * 0.5) - 1), :]
-                remove_1 = data_start.iloc[(len(data_end) - amount_remove_windows):, :]
+                remove_1 = data_start.iloc[(len(data_end) - max(1, int((round(amount_remove_windows / resample_factor)
+                                                                        )))):, :]
                 remove_2 = data_end.iloc[:(amount_remove_windows - 1), :]
 
             test = pd.concat([test_1, test_2])
@@ -127,7 +130,7 @@ def create_subject_data(method: str, test_window_size: int, subject_id: int, add
     return subject_data, labels
 
 
-def test_max_window_size(test_window_sizes: List[int], additional_windows: int, resample_factor: int = None) \
+def test_max_window_size(test_window_sizes: List[int], additional_windows: int, resample_factor: int) \
         -> bool:
     """
     Test all given test window-sizes if they are valid
@@ -137,6 +140,7 @@ def test_max_window_size(test_window_sizes: List[int], additional_windows: int, 
     :return: Boolean -> False if there is at least one wrong test window-size
     """
     data_dict = load_dataset(resample_factor=resample_factor)  # read data_dict
+    additional_windows = max(1, int(round(additional_windows / resample_factor)))
 
     # Calculate max_window
     min_method_length = additional_windows * 2
@@ -206,7 +210,8 @@ def run_calculations(test_window_sizes: List[int], resample_factor: int = 1, add
     if methods is None:
         methods = get_classes()
 
-    if test_max_window_size(test_window_sizes=test_window_sizes, additional_windows=additional_windows):
+    if test_max_window_size(test_window_sizes=test_window_sizes, resample_factor=resample_factor,
+                            additional_windows=additional_windows):
         print("Test-window-size test successful: All test-window-sizes are valid")
 
         for test_window_size in test_window_sizes:
