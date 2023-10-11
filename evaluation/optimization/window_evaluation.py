@@ -4,7 +4,8 @@ from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.create_md_tables import create_md_precision_windows
 from evaluation.optimization.class_evaluation import get_class_distribution
 from evaluation.optimization.sensor_evaluation import list_to_string
-from preprocessing.data_preparation import get_subject_list
+from preprocessing.datasets.load_wesad import get_subject_list
+from config import Config
 
 from typing import Dict, List
 import matplotlib.pyplot as plt
@@ -12,14 +13,17 @@ import statistics
 import os
 import random
 
-MAIN_PATH = os.path.abspath(os.getcwd())
-OUT_PATH = os.path.join(MAIN_PATH, "out")  # add /out to path
-EVALUATIONS_PATH = os.path.join(OUT_PATH, "evaluations")  # add /evaluations to path
+
+cfg = Config.get()
+
+
+# Specify path
+EVALUATIONS_PATH = os.path.join(cfg.out_dir, "evaluations")  # add /evaluations to path
 
 
 def calculate_window_precisions(rank_method: str = "score", average_method: str = "weighted-mean",
                                 sensor_combination=None, subject_ids: List = None, k_list: List[int] = None) \
-        -> Dict[int, Dict[float, float]]:
+        -> Dict[int, Dict[int, float]]:
     """
     Calculate precisions per test-window-size, mean over sensors and test-window-size
     :param rank_method: Specify rank-method "score" or "rank" (use beste rank-method)
@@ -29,7 +33,6 @@ def calculate_window_precisions(rank_method: str = "score", average_method: str 
     :param k_list: Specify k parameters; if None: 1, 3, 5 are used
     :return: Dictionary with results
     """
-
     classes = get_classes()  # Get all classes
     windows_test = get_windows()  # Get all test-windows
     if k_list is None:

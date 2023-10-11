@@ -1,15 +1,17 @@
-from preprocessing.data_preparation import get_subject_list
+from preprocessing.datasets.load_wesad import get_subject_list
 from evaluation.metrics.calculate_ranks import run_calculate_ranks, realistic_rank, get_realistic_ranks_combinations
 from preprocessing.process_results import load_results
+from config import Config
 
 from typing import List, Dict, Union
 import json
 import os
 
 
-MAIN_PATH = os.path.abspath(os.getcwd())
-OUT_PATH = os.path.join(MAIN_PATH, "out")  # add /out to path
-PRECISION_PATH = os.path.join(OUT_PATH, "precision")  # add /precision to path
+cfg = Config.get()
+
+# Specify path
+PRECISION_PATH = os.path.join(cfg.out_dir, "precision")  # add /precision to path
 
 SUBJECT_LIST = get_subject_list()
 

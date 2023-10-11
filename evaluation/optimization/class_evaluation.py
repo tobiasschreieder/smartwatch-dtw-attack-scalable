@@ -2,8 +2,8 @@ from alignments.dtw_attack import get_classes, get_windows
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.create_md_tables import create_md_precision_classes
-from preprocessing.data_preparation import get_sensor_combinations, get_subject_list
-from preprocessing.data_preparation import load_dataset
+from preprocessing.datasets.load_wesad import Wesad, get_sensor_combinations, get_subject_list
+from config import Config
 
 from typing import Dict, List, Tuple
 import pandas as pd
@@ -12,9 +12,11 @@ import os
 import random
 
 
-MAIN_PATH = os.path.abspath(os.getcwd())
-OUT_PATH = os.path.join(MAIN_PATH, "out")  # add /out to path
-EVALUATIONS_PATH = os.path.join(OUT_PATH, "evaluations")  # add /evaluations to path
+cfg = Config.get()
+
+
+# Specify path
+EVALUATIONS_PATH = os.path.join(cfg.out_dir, "evaluations")  # add /evaluations to path
 
 
 def get_class_distribution() -> Dict[str, float]:
@@ -22,7 +24,7 @@ def get_class_distribution() -> Dict[str, float]:
     Get proportions of baseline, stress and amusement data (mean over all subjects)
     :return: Dictionary with proportions
     """
-    data_dict = load_dataset()
+    data_dict = Wesad().load_dataset()
 
     amusement_proportions = list()
     baseline_proportions = list()

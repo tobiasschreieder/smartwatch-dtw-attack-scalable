@@ -1,4 +1,5 @@
-from preprocessing.data_preparation import load_dataset, get_subject_list
+from preprocessing.datasets.load_wesad import Wesad, get_subject_list
+from config import Config
 
 from typing import Dict, Tuple, List
 import pandas as pd
@@ -8,8 +9,7 @@ import json
 import time
 
 
-MAIN_PATH = os.path.abspath(os.getcwd())
-DATA_PATH = os.path.join(MAIN_PATH, "dataset")  # add /dataset to path
+cfg = Config.get()
 
 CLASSES = ["baseline", "amusement", "stress"]  # All available classes
 WINDOWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 50, 100, 500, 1000]  # All calculated window-sizes
@@ -44,7 +44,7 @@ def create_subject_data(method: str, test_window_size: int, subject_id: int, add
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Tuple with create subject_data and labels (containing label information)
     """
-    data_dict = load_dataset(resample_factor=resample_factor)
+    data_dict = Wesad().load_dataset(resample_factor=resample_factor)
     subject_data = {"train": dict(), "test": dict(), "method": method}
     labels = dict()
 
@@ -139,7 +139,7 @@ def test_max_window_size(test_window_sizes: List[int], additional_windows: int, 
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Boolean -> False if there is at least one wrong test window-size
     """
-    data_dict = load_dataset(resample_factor=resample_factor)  # read data_dict
+    data_dict = Wesad().load_dataset(resample_factor=resample_factor)  # read data_dict
     additional_windows = max(1, int(round(additional_windows / resample_factor)))
 
     # Calculate max_window
@@ -231,8 +231,7 @@ def run_calculations(test_window_sizes: List[int], resample_factor: int = 1, add
 
                     # Save results as json
                     try:
-                        path = os.path.join(MAIN_PATH, "/out")  # add /out to path
-                        path = os.path.join(path, "/alignments")  # add /alignments to path
+                        path = os.path.join(cfg.out_dir, "alignments")  # add /alignments to path
                         path = os.path.join(path, str(method))  # add /method to path
                         path = os.path.join(path, "test=" + str(test_window_size))  # add /test=X to path
                         os.makedirs(path, exist_ok=True)
@@ -255,9 +254,8 @@ def run_calculations(test_window_sizes: List[int], resample_factor: int = 1, add
             end = time.perf_counter()
 
             # Save runtime as txt file
-            runtime_path = os.path.join(MAIN_PATH, "/out")
-            runtime_path = os.path.join(runtime_path, "/alignments")
-            runtime_path = os.path.join(runtime_path, "/runtime")
+            alignments_path = os.path.join(cfg.out_dir, "/alignments")
+            runtime_path = os.path.join(alignments_path, "/runtime")
             os.makedirs(runtime_path, exist_ok=True)
 
             text_file = open(runtime_path, "w")

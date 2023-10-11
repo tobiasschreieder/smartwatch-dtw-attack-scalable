@@ -7,7 +7,6 @@ from evaluation.optimization.class_evaluation import run_class_evaluation
 from evaluation.optimization.rank_method_evaluation import run_rank_method_evaluation
 from evaluation.optimization.sensor_evaluation import run_sensor_evaluation
 from evaluation.optimization.window_evaluation import run_window_evaluation
-from preprocessing.data_preparation import preprocess_data
 from evaluation.optimization.overall_evaluation import run_overall_evaluation
 
 
@@ -16,20 +15,17 @@ Example Calculations
 ------------------------------------------------------------------------------------------------------------------------
 """
 
-"""1. Preprocess WESAD dataset and save dataset as data_dict.pickle to /dataset"""
-# preprocess_data()
-
-"""2. Plot exploratory data analysis to /out/eda"""
+"""1. Plot exploratory data analysis to /out/eda"""
 # plot_subject_data()
 
-"""3. Calculate DTW-alignments and save results to /out/alignments"""
+"""2. Calculate DTW-alignments and save results to /out/alignments"""
 # run_calculations(methods=["baseline", "amusement", "stress"], test_window_sizes=[2, 20], resample_factor=1000,
 #                  additional_windows=100)
 
-"""4. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
+"""3. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
 # run_dtw_alignments(resample_factor=4)
 
-"""5. Plot DTW alignment subject distance heatmap and save plot to /out/eda"""
+"""4. Plot DTW alignment subject distance heatmap and save plot to /out/eda"""
 # plot_alignment_heatmap()
 
 """5. Evaluate DTW-alignment results per subject; save MD-tables with distance and rank results and realistic-rank-plots

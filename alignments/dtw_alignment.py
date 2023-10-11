@@ -1,15 +1,15 @@
-from preprocessing.data_preparation import load_dataset, get_subject_list
+from preprocessing.datasets.load_wesad import Wesad, get_subject_list
+from config import Config
 
-from dtw import *
+from dtaidistance import dtw
 import pandas as pd
 import scipy.signal
-from typing import Dict, List, Tuple
+from typing import Dict, List
 import json
 import os
 
 
-MAIN_PATH = os.path.abspath(os.getcwd())
-DATA_PATH = os.path.join(MAIN_PATH, "dataset")  # add /dataset to path
+cfg = Config.get()
 
 
 def create_full_subject_data(subject_id: int, resample_factor: float) -> Dict[str, pd.DataFrame]:
@@ -19,7 +19,7 @@ def create_full_subject_data(subject_id: int, resample_factor: float) -> Dict[st
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Dictionary with subject_data
     """
-    data_dict = load_dataset()
+    data_dict = Wesad().load_dataset()
 
     sensor_data = {"bvp": scipy.signal.resample(data_dict[subject_id][["bvp"]],
                                                 round(len(data_dict[subject_id][["bvp"]]) / resample_factor)),
@@ -37,15 +37,13 @@ def create_full_subject_data(subject_id: int, resample_factor: float) -> Dict[st
     return sensor_data
 
 
-def calculate_complete_subject_alignment(subject_id: int, resample_factor: float) \
-        -> Tuple[Dict[int, Dict[str, float]], Dict[int, Dict[str, float]]]:
+def calculate_complete_subject_alignment(subject_id: int, resample_factor: float) -> Dict[int, Dict[str, float]]:
     """
     Calculate dtw-alignments for all sensors and subjects (no train-test split)
     :param subject_id: Specify subject-id
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
-    :return: Tuple with Dictionaries of normalized and standard results
+    :return: Dictionary of standard results (not normalized)
     """
-    results_normalized = dict()
     results_standard = dict()
     subject_data_1 = create_full_subject_data(resample_factor=resample_factor, subject_id=subject_id)
     subject_list = get_subject_list()
@@ -53,21 +51,16 @@ def calculate_complete_subject_alignment(subject_id: int, resample_factor: float
     for subject in subject_list:
         print("--Current subject: " + str(subject))
         subject_data_2 = create_full_subject_data(resample_factor=resample_factor, subject_id=subject)
-        results_normalized.setdefault(subject, dict())
         results_standard.setdefault(subject, dict())
 
         for sensor in subject_data_2:
             test = subject_data_1[sensor]
             train = subject_data_2[sensor]
 
-            alignment = dtw(train, test, keep_internals=False)
-            distance_normalized = alignment.normalizedDistance
-            distance_standard = alignment.distance
-
-            results_normalized[subject].setdefault(sensor, round(distance_normalized, 4))
+            distance_standard = dtw.distance_fast(train, test)
             results_standard[subject].setdefault(sensor, round(distance_standard, 4))
 
-    return results_normalized, results_standard
+    return results_standard
 
 
 def run_dtw_alignments(resample_factor: float = 2, subject_ids: List[int] = None):
@@ -83,32 +76,22 @@ def run_dtw_alignments(resample_factor: float = 2, subject_ids: List[int] = None
     for subject_id in subject_ids:
         print("-Current id: " + str(subject_id))
 
-        results_normalized, results_standard = calculate_complete_subject_alignment(subject_id=subject_id,
-                                                                                    resample_factor=resample_factor)
+        results_standard = calculate_complete_subject_alignment(subject_id=subject_id, resample_factor=resample_factor)
 
         # Save results as json
         try:
-            path = os.path.join(MAIN_PATH, "out")  # add /out to path
-            path = os.path.join(path, "alignments")  # add /alignments to path
+            path = os.path.join(cfg.out_dir, "alignments")  # add /alignments to path
             path = os.path.join(path, "complete")  # add /complete to path
             os.makedirs(path, exist_ok=True)
 
-            path_string_normalized = "/SW-DTW_results_normalized_" + "complete_S" + str(subject_id) + ".json"
-            path_string_standard = "/SW-DTW_results_standard_" + "complete_S" + str(subject_id) + ".json"
+            path_string_standard = "SW-DTW_results_standard_" + "complete_S" + str(subject_id) + ".json"
 
-            with open(path + path_string_normalized, "w", encoding="utf-8") as outfile:
-                json.dump(results_normalized, outfile)
-
-            with open(path + path_string_standard, "w", encoding="utf-8") as outfile:
+            with open(os.path.join(path, path_string_standard), "w", encoding="utf-8") as outfile:
                 json.dump(results_standard, outfile)
 
             print("SW-DTW results saved at: " + str(path))
 
         except FileNotFoundError:
-            with open("/SW-DTW_results_normalized_" + "complete_S" + str(subject_id) + ".json", "w", encoding="utf-8") \
-                    as outfile:
-                json.dump(results_normalized, outfile)
-
             with open("/SW-DTW_results_standard_" + "complete_S" + str(subject_id) + ".json", "w", encoding="utf-8") \
                     as outfile:
                 json.dump(results_standard, outfile)

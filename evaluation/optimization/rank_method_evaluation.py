@@ -2,8 +2,8 @@ from alignments.dtw_attack import get_classes, get_windows
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.create_md_tables import create_md_precision_rank_method
-from preprocessing.data_preparation import get_sensor_combinations
-from preprocessing.data_preparation import get_subject_list
+from preprocessing.datasets.load_wesad import get_sensor_combinations, get_subject_list
+from config import Config
 
 from typing import List, Dict
 import statistics
@@ -11,9 +11,11 @@ import os
 import random
 
 
-MAIN_PATH = os.path.abspath(os.getcwd())
-OUT_PATH = os.path.join(MAIN_PATH, "out")  # add /out to path
-EVALUATIONS_PATH = os.path.join(OUT_PATH, "evaluations")  # add /evaluations to path
+cfg = Config.get()
+
+
+# Specify path
+EVALUATIONS_PATH = os.path.join(cfg.out_dir, "evaluations")  # add /evaluations to path
 
 
 def calculate_rank_method_precisions(subject_ids: List = None, k_list: List[int] = None) -> Dict[int, Dict[str, float]]:

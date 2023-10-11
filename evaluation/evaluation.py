@@ -7,19 +7,22 @@ from evaluation.optimization.overall_evaluation import calculate_best_configurat
 from evaluation.optimization.rank_method_evaluation import run_rank_method_evaluation
 from evaluation.optimization.sensor_evaluation import run_sensor_evaluation
 from evaluation.optimization.window_evaluation import run_window_evaluation
-from preprocessing.data_preparation import get_subject_list
+from preprocessing.datasets.load_wesad import get_subject_list
 from preprocessing.process_results import load_results
+from config import Config
 
 from typing import List
 import os
 import matplotlib.pyplot as plt
 
 
-MAIN_PATH = os.path.abspath(os.getcwd())
-OUT_PATH = os.path.join(MAIN_PATH, "out")  # add /out to path
-SUBJECT_PLOT_PATH = os.path.join(OUT_PATH, "subject-plots")  # add /subject-plots to path
-PRECISION_PATH = os.path.join(OUT_PATH, "precision")  # add /precision to path
-EVALUATIONS_PATH = os.path.join(OUT_PATH, "evaluations")  # add /evaluations to path
+cfg = Config.get()
+
+
+# Specify path
+SUBJECT_PLOT_PATH = os.path.join(cfg.out_dir, "subject-plots")  # add /subject-plots to path
+PRECISION_PATH = os.path.join(cfg.out_dir, "precision")  # add /precision to path
+EVALUATIONS_PATH = os.path.join(cfg.out_dir, "evaluations")  # add /evaluations to path
 
 
 def run_calculate_max_precision(k_list: List[int], methods: List = None, test_window_sizes: List = None,

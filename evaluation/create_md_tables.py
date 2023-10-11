@@ -1,7 +1,6 @@
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
-from preprocessing.data_preparation import get_sensor_combinations
-from preprocessing.data_preparation import get_subject_list
+from preprocessing.datasets.load_wesad import get_sensor_combinations, get_subject_list
 
 from typing import List, Dict
 

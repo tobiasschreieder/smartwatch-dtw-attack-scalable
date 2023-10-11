@@ -7,8 +7,9 @@ from evaluation.optimization.rank_method_evaluation import calculate_rank_method
 from evaluation.optimization.sensor_evaluation import calculate_sensor_precisions, get_best_sensor_configuration, \
     list_to_string
 from evaluation.optimization.window_evaluation import calculate_window_precisions, get_best_window_configuration
-from preprocessing.data_preparation import get_subject_list
+from preprocessing.datasets.load_wesad import get_subject_list
 from preprocessing.process_results import load_max_precision_results
+from config import Config
 
 from typing import Dict, List, Union
 import os
@@ -16,12 +17,14 @@ import statistics
 import json
 
 
-MAIN_PATH = os.path.abspath(os.getcwd())
-OUT_PATH = os.path.join(MAIN_PATH, "out")  # add /out to path
-EVALUATIONS_PATH = os.path.join(OUT_PATH, "evaluations")  # add /evaluations to path
+cfg = Config.get()
 
 
-def calculate_best_configurations() -> Dict[str, Union[str, float, List[List[str]]]]:
+# Specify path
+EVALUATIONS_PATH = os.path.join(cfg.out_dir, "evaluations")  # add /evaluations to path
+
+
+def calculate_best_configurations() -> Dict[str, Union[str, int, List[List[str]]]]:
     """
     Calculate the best configurations for rank-method, classes, sensors and windows
     :return: Dictionary with best configurations
@@ -146,7 +149,7 @@ def calculate_best_k_parameters() -> Dict[str, int]:
     return best_k_parameters
 
 
-def get_best_sensor_weightings(test_window_size: float, methods: List[str] = None, k_list: List[int] = None) \
+def get_best_sensor_weightings(test_window_size: int, methods: List[str] = None, k_list: List[int] = None) \
         -> Dict[str, Dict[int, List[Dict[str, float]]]]:
     """
     Calculate best sensor-weightings for specified window-size

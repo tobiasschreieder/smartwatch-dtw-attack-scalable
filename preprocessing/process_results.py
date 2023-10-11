@@ -1,14 +1,17 @@
+from config import Config
+
 import json
 import os
 import statistics
 from typing import Dict, Union, List
 
 
+cfg = Config.get()
+
+
 # Specify path
-MAIN_PATH = os.path.abspath(os.getcwd())
-OUT_PATH = os.path.join(MAIN_PATH, "out")  # add /out to path
-ALIGNMENT_PATH = os.path.join(OUT_PATH, "alignments")  # add /alignments to path
-PRECISION_PATH = os.path.join(OUT_PATH, "precision")  # add /precision to path
+ALIGNMENT_PATH = os.path.join(cfg.out_dir, "alignments")  # add /alignments to path
+PRECISION_PATH = os.path.join(cfg.out_dir, "precision")  # add /precision to path
 
 
 def load_results(subject_id: int, method: str, test_window_size: int, normalized_data: bool = False) \

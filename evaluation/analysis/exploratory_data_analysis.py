@@ -1,22 +1,24 @@
-from preprocessing.data_preparation import load_dataset, get_subject_list
+from preprocessing.datasets.load_wesad import Wesad, get_subject_list
 from preprocessing.process_results import load_complete_alignment_results
+from config import Config
 
 import os
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-MAIN_PATH = os.path.abspath(os.getcwd())
-EDA_PATH = os.path.join(MAIN_PATH, "out")  # add /out to path
-EDA_PATH = os.path.join(EDA_PATH, "eda")  # add /eda to path
+cfg = Config.get()
+
+
+# Specify path
+EDA_PATH = os.path.join(cfg.out_dir, "eda")  # add /eda to path
 
 
 def plot_subject_data():
     """
     Plot sensor-value distribution for all subjects
-    :return:
     """
-    data_dict = load_dataset()  # read data_dict
+    data_dict = Wesad().load_dataset()  # read data_dict
 
     for subject in data_dict:
         plt.plot(data_dict[subject])
