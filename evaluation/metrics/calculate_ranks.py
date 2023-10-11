@@ -1,4 +1,4 @@
-from preprocessing.datasets.load_wesad import get_subject_list
+from preprocessing.datasets.dataset import Dataset
 from preprocessing.process_results import load_results
 
 from typing import List, Dict, Tuple, Any
@@ -7,15 +7,16 @@ import math
 import copy
 
 
-SUBJECT_LIST = get_subject_list()
-
-
-def calculate_ranks_1(results: Dict[str, Dict[str, float]]) -> Tuple[Dict[str, int], Dict[str, Dict[str, Any]]]:
+def calculate_ranks_1(dataset: Dataset, results: Dict[str, Dict[str, float]]) \
+        -> Tuple[Dict[str, int], Dict[str, Dict[str, Any]]]:
     """
     Calculate unique ranks by averaging individual ranks (method = "rank")
+    :param dataset: Specify dataset
     :param results: Dictionary with results
     :return: Tuple with Dictionaries of overall_results and rank_results
     """
+    subject_list = dataset.get_subject_list()
+
     result_lists = dict()
     for i in results:
         for j in results[i]:
@@ -30,7 +31,7 @@ def calculate_ranks_1(results: Dict[str, Dict[str, float]]) -> Tuple[Dict[str, i
     rank_results = copy.deepcopy(results)
     for i in ranks:
         for j in range(len(ranks[i])):
-            rank_results[str(SUBJECT_LIST[j])][i] = ranks[i][j]
+            rank_results[str(subject_list[j])][i] = ranks[i][j]
 
     final_ranks = dict()
     for i in rank_results:
@@ -42,18 +43,21 @@ def calculate_ranks_1(results: Dict[str, Dict[str, float]]) -> Tuple[Dict[str, i
 
     overall_ranks = copy.deepcopy(final_ranks)
     for i in range(len(final_rank_list)):
-        overall_ranks[str(SUBJECT_LIST[int(i)])] = final_rank_list[i]
+        overall_ranks[str(subject_list[int(i)])] = final_rank_list[i]
 
     return overall_ranks, rank_results
 
 
-def calculate_ranks_2(results: Dict[str, Dict[str, float]]) \
+def calculate_ranks_2(dataset: Dataset, results: Dict[str, Dict[str, float]]) \
         -> Tuple[Dict[str, int], Dict[str, Dict[str, Any]]]:
     """
     Calculate unique ranks by averaging calculated scores (method = "score")
+    :param dataset: Specify dataset
     :param results: Dictionary with results
     :return: Tuple with Dictionaries of overall_results and rank_results
     """
+    subject_list = dataset.get_subject_list()
+
     result_lists = dict()
     for i in results:
         mean_score = statistics.mean([results[i]["bvp"], results[i]["eda"], results[i]["acc"], results[i]["temp"]])
@@ -64,7 +68,7 @@ def calculate_ranks_2(results: Dict[str, Dict[str, float]]) \
 
     overall_ranks = copy.deepcopy(result_lists)
     for i in range(len(final_rank_list)):
-        overall_ranks[str(SUBJECT_LIST[int(i)])] = final_rank_list[i]
+        overall_ranks[str(subject_list[int(i)])] = final_rank_list[i]
 
     result_lists = dict()
     for i in results:
@@ -80,27 +84,28 @@ def calculate_ranks_2(results: Dict[str, Dict[str, float]]) \
     rank_results = copy.deepcopy(results)
     for i in ranks:
         for j in range(len(ranks[i])):
-            rank_results[str(SUBJECT_LIST[j])][i] = ranks[i][j]
+            rank_results[str(subject_list[j])][i] = ranks[i][j]
 
     return overall_ranks, rank_results
 
 
-def run_calculate_ranks(results: Dict[str, Dict[str, float]], method: str) \
+def run_calculate_ranks(dataset: Dataset, results: Dict[str, Dict[str, float]], rank_method: str) \
         -> Tuple[Dict[str, int], Dict[str, Dict[str, Any]]]:
     """
     Method to calculate unique scores with specified averaging method
+    :param dataset: Specify dataset
     :param results: Dictionary with results
-    :param method: Specify method ("rank" or "score")
+    :param rank_method: Specify method ("rank" or "score")
     :return: Tuple with Dictionaries of overall_results and rank_results
     """
     # Calculate ranks
     overall_ranks = dict()
     rank_results = dict()
 
-    if method == "rank":
-        overall_ranks, rank_results = calculate_ranks_1(results)
-    elif method == "score":
-        overall_ranks, rank_results = calculate_ranks_2(results)
+    if rank_method == "rank":
+        overall_ranks, rank_results = calculate_ranks_1(dataset=dataset, results=results)
+    elif rank_method == "score":
+        overall_ranks, rank_results = calculate_ranks_2(dataset=dataset, results=results)
 
     return overall_ranks, rank_results
 
@@ -129,10 +134,12 @@ def realistic_rank(overall_ranks: Dict[str, int], subject_id: int) -> int:
     return realistic_rank
 
 
-def get_realistic_ranks(rank_method: str, method: str, test_window_size: int, subject_ids: List[int] = None) \
-        -> List[int]:
+def get_realistic_ranks(dataset: Dataset, resample_factor: int, rank_method: str, method: str, test_window_size: int,
+                        subject_ids: List[int] = None) -> List[int]:
     """
     Get list with sorted realistic ranks
+    :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param rank_method: Specify ranking method ("rank" or "score")
     :param method: Specify method of results ("baseline", "amusement", "stress")
     :param test_window_size: Specify test-window-size
@@ -140,12 +147,13 @@ def get_realistic_ranks(rank_method: str, method: str, test_window_size: int, su
     :return: List with sorted realistic ranks
     """
     if subject_ids is None:
-        subject_ids = SUBJECT_LIST
+        subject_ids = dataset.get_subject_list()
 
     real_ranks = list()
     for subject in subject_ids:
-        results = load_results(subject_id=subject, method=method, test_window_size=test_window_size)
-        overall_ranks, individual_ranks = run_calculate_ranks(results, rank_method)
+        results = load_results(dataset=dataset, resample_factor=resample_factor, subject_id=subject, method=method,
+                               test_window_size=test_window_size)
+        overall_ranks, individual_ranks = run_calculate_ranks(dataset=dataset, results=results, rank_method=rank_method)
 
         real_rank = realistic_rank(overall_ranks, subject)
         real_ranks.append(real_rank)
@@ -153,13 +161,17 @@ def get_realistic_ranks(rank_method: str, method: str, test_window_size: int, su
     return sorted(real_ranks)
 
 
-def calculate_ranks_combinations_1(results: Dict[str, Dict[str, float]], combination: List[str]) -> Dict[str, int]:
+def calculate_ranks_combinations_1(dataset: Dataset, results: Dict[str, Dict[str, float]], combination: List[str]) \
+        -> Dict[str, int]:
     """
     Calculate ranks for all sensor combinations with method "rank"
+    :param dataset: Specify dataset
     :param results: Dictionary with results
     :param combination: Sensor combination
     :return: Dictionary with rank results
     """
+    subject_list = dataset.get_subject_list()
+
     result_lists = dict()
     for i in results:
         for j in results[i]:
@@ -175,7 +187,7 @@ def calculate_ranks_combinations_1(results: Dict[str, Dict[str, float]], combina
     rank_results_all = copy.deepcopy(results)
     for i in ranks:
         for j in range(len(ranks[i])):
-            rank_results_all[str(SUBJECT_LIST[j])][i] = ranks[i][j]
+            rank_results_all[str(subject_list[j])][i] = ranks[i][j]
 
     rank_results = copy.deepcopy(rank_results_all)
     for i in rank_results_all:
@@ -196,18 +208,22 @@ def calculate_ranks_combinations_1(results: Dict[str, Dict[str, float]], combina
 
     overall_ranks = copy.deepcopy(final_ranks)
     for i in range(len(final_rank_list)):
-        overall_ranks[str(SUBJECT_LIST[int(i)])] = final_rank_list[i]
+        overall_ranks[str(subject_list[int(i)])] = final_rank_list[i]
 
     return overall_ranks
 
 
-def calculate_ranks_combinations_2(results: Dict[str, Dict[str, float]], combination: List[str]) -> Dict[str, int]:
+def calculate_ranks_combinations_2(dataset: Dataset, results: Dict[str, Dict[str, float]], combination: List[str]) \
+        -> Dict[str, int]:
     """
     Calculate ranks for all sensor combinations with method "score"
+    :param dataset: Specify dataset
     :param results: Dictionary with results
     :param combination: Sensor combinations
     :return: Dictionary with rank results
     """
+    subject_list = dataset.get_subject_list()
+
     result_lists = dict()
     for i in results:
         mean_score = 0
@@ -221,20 +237,23 @@ def calculate_ranks_combinations_2(results: Dict[str, Dict[str, float]], combina
 
     overall_ranks = copy.deepcopy(result_lists)
     for i in range(len(final_rank_list)):
-        overall_ranks[str(SUBJECT_LIST[int(i)])] = final_rank_list[i]
+        overall_ranks[str(subject_list[int(i)])] = final_rank_list[i]
 
     return overall_ranks
 
 
-def calculate_ranks_combinations_3(results: Dict[str, Dict[str, float]], combination: List[str],
+def calculate_ranks_combinations_3(dataset: Dataset, results: Dict[str, Dict[str, float]], combination: List[str],
                                    weights: Dict[str, float]) -> Dict[str, int]:
     """
     Calculate weighted ranks for all sensor combinations with method "score"
+    :param dataset: Specify dataset
     :param results: Dictionary with results
     :param combination: Sensor combinations
     :param weights: List with weights
     :return: Dictionary with rank results
     """
+    subject_list = dataset.get_subject_list()
+
     result_lists = dict()
     for i in results:
         weighted_score = 0
@@ -247,16 +266,17 @@ def calculate_ranks_combinations_3(results: Dict[str, Dict[str, float]], combina
 
     overall_ranks = copy.deepcopy(result_lists)
     for i in range(len(final_rank_list)):
-        overall_ranks[str(SUBJECT_LIST[int(i)])] = final_rank_list[i]
+        overall_ranks[str(subject_list[int(i)])] = final_rank_list[i]
 
     return overall_ranks
 
 
-def run_calculate_ranks_combinations(results: Dict[str, Dict[str, float]], rank_method: str,
+def run_calculate_ranks_combinations(dataset: Dataset, results: Dict[str, Dict[str, float]], rank_method: str,
                                      combinations: List[List[str]], weights: Dict[str, float] = None) \
         -> Dict[str, Dict[str, int]]:
     """
     Run calculation of rank combinations for one individual subject
+    :param dataset: Specify dataset
     :param results: Dictionary with results
     :param rank_method: Specify ranking method
     :param combinations: Sensor combinations ("rank", "score", "max")
@@ -282,24 +302,26 @@ def run_calculate_ranks_combinations(results: Dict[str, Dict[str, float]], rank_
     overall_ranks_comb = dict()
     for comb in combinations:
         if rank_method == "rank":
-            overall_ranks_comb.setdefault(list_to_string(input_list=comb),
-                                          calculate_ranks_combinations_1(results=results, combination=comb))
+            overall_ranks_comb.setdefault(list_to_string(input_list=comb), calculate_ranks_combinations_1(
+                dataset=dataset, results=results, combination=comb))
         elif rank_method == "score":
-            overall_ranks_comb.setdefault(list_to_string(input_list=comb),
-                                          calculate_ranks_combinations_2(results=results, combination=comb))
+            overall_ranks_comb.setdefault(list_to_string(input_list=comb), calculate_ranks_combinations_2(
+                dataset=dataset, results=results, combination=comb))
         elif rank_method == "max":
-            overall_ranks_comb.setdefault(list_to_string(input_list=comb),
-                                          calculate_ranks_combinations_3(results=results, combination=comb,
-                                                                         weights=weights))
+            overall_ranks_comb.setdefault(list_to_string(input_list=comb), calculate_ranks_combinations_3(
+                dataset=dataset, results=results, combination=comb, weights=weights))
 
     return overall_ranks_comb
 
 
-def get_realistic_ranks_combinations(rank_method: str, combinations: List[List[str]], method: str,
-                                     test_window_size: int, subject_ids: List[int] = None,
-                                     weights: Dict[str, float] = None) -> Dict[str, List[int]]:
+def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, rank_method: str,
+                                     combinations: List[List[str]], method: str, test_window_size: int,
+                                     subject_ids: List[int] = None, weights: Dict[str, float] = None) \
+        -> Dict[str, List[int]]:
     """
     Get realistic ranks for sensor combination results
+    :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param rank_method: Choose ranking method ("rank", "score", "max")
     :param combinations: Specify sensor combinations
     :param method: Specify DTW-method ("baseline", "amusement", "stress")
@@ -311,12 +333,13 @@ def get_realistic_ranks_combinations(rank_method: str, combinations: List[List[s
     if weights is None:
         weights = dict()
     if subject_ids is None:
-        subject_ids = SUBJECT_LIST
+        subject_ids = dataset.get_subject_list()
 
     realistic_ranks_comb = dict()
     for subject_id in subject_ids:
-        results = load_results(subject_id=subject_id, method=method, test_window_size=test_window_size)
-        overall_ranks_comb = run_calculate_ranks_combinations(results=results, rank_method=rank_method,
+        results = load_results(dataset=dataset, resample_factor=resample_factor, subject_id=subject_id, method=method,
+                               test_window_size=test_window_size)
+        overall_ranks_comb = run_calculate_ranks_combinations(dataset=dataset, results=results, rank_method=rank_method,
                                                               combinations=combinations, weights=weights)
 
         for k, v in overall_ranks_comb.items():

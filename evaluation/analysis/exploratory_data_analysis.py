@@ -1,4 +1,4 @@
-from preprocessing.datasets.load_wesad import Wesad, get_subject_list
+from preprocessing.datasets.dataset import Dataset
 from preprocessing.process_results import load_complete_alignment_results
 from config import Config
 
@@ -14,11 +14,12 @@ cfg = Config.get()
 EDA_PATH = os.path.join(cfg.out_dir, "eda")  # add /eda to path
 
 
-def plot_subject_data():
+def plot_subject_data(dataset: Dataset):
     """
     Plot sensor-value distribution for all subjects
+    :param dataset: Specify dataset
     """
-    data_dict = Wesad().load_dataset()  # read data_dict
+    data_dict = dataset.load_dataset()  # read data_dict
 
     for subject in data_dict:
         plt.plot(data_dict[subject])
@@ -37,12 +38,13 @@ def plot_subject_data():
         plt.close()
 
 
-def plot_alignment_heatmap(normalized_data: bool = True):
+def plot_alignment_heatmap(dataset: Dataset, normalized_data: bool = True):
     """
     Plot complete subject alignments as heatmap
+    :param dataset: Specify dataset
     :param normalized_data: If True -> use normalized results
     """
-    subject_ids = get_subject_list()
+    subject_ids = dataset.get_subject_list()
     data = dict()
     data_array = list()
 

@@ -1,4 +1,4 @@
-from preprocessing.datasets.load_wesad import Wesad, get_subject_list
+from preprocessing.datasets.load_wesad import Dataset
 from config import Config
 
 from dtaidistance import dtw
@@ -12,14 +12,15 @@ import os
 cfg = Config.get()
 
 
-def create_full_subject_data(subject_id: int, resample_factor: float) -> Dict[str, pd.DataFrame]:
+def create_full_subject_data(dataset: Dataset, subject_id: int, resample_factor: float) -> Dict[str, pd.DataFrame]:
     """
     Create dictionary with all subjects and their sensor data as Dataframe
+    :param dataset: Specify dataset
     :param subject_id: Specify subject_id
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Dictionary with subject_data
     """
-    data_dict = Wesad().load_dataset()
+    data_dict = dataset.load_dataset()
 
     sensor_data = {"bvp": scipy.signal.resample(data_dict[subject_id][["bvp"]],
                                                 round(len(data_dict[subject_id][["bvp"]]) / resample_factor)),
@@ -37,16 +38,18 @@ def create_full_subject_data(subject_id: int, resample_factor: float) -> Dict[st
     return sensor_data
 
 
-def calculate_complete_subject_alignment(subject_id: int, resample_factor: float) -> Dict[int, Dict[str, float]]:
+def calculate_complete_subject_alignment(dataset: Dataset, subject_id: int, resample_factor: float) \
+        -> Dict[int, Dict[str, float]]:
     """
     Calculate dtw-alignments for all sensors and subjects (no train-test split)
+    :param dataset: Specify dataset
     :param subject_id: Specify subject-id
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Dictionary of standard results (not normalized)
     """
     results_standard = dict()
     subject_data_1 = create_full_subject_data(resample_factor=resample_factor, subject_id=subject_id)
-    subject_list = get_subject_list()
+    subject_list = dataset.get_subject_list()
 
     for subject in subject_list:
         print("--Current subject: " + str(subject))
@@ -63,14 +66,15 @@ def calculate_complete_subject_alignment(subject_id: int, resample_factor: float
     return results_standard
 
 
-def run_dtw_alignments(resample_factor: float = 2, subject_ids: List[int] = None):
+def run_dtw_alignments(dataset: Dataset, resample_factor: float = 2, subject_ids: List[int] = None):
     """
     Run DTW-Calculations with all given parameters and save results as json (no train-test split)
+    :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
     """
     if subject_ids is None:
-        subject_ids = get_subject_list()
+        subject_ids = dataset.get_subject_list()
 
     # Run DTW Calculations
     for subject_id in subject_ids:

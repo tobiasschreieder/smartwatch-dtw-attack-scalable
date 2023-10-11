@@ -1,4 +1,3 @@
-from alignments.dtw_attack import get_classes
 from evaluation.create_md_tables import create_md_precision_overall
 from evaluation.optimization.class_evaluation import calculate_average_class_precisions, get_best_class_configuration, \
     get_class_distribution
@@ -7,7 +6,7 @@ from evaluation.optimization.rank_method_evaluation import calculate_rank_method
 from evaluation.optimization.sensor_evaluation import calculate_sensor_precisions, get_best_sensor_configuration, \
     list_to_string
 from evaluation.optimization.window_evaluation import calculate_window_precisions, get_best_window_configuration
-from preprocessing.datasets.load_wesad import get_subject_list
+from preprocessing.datasets.dataset import Dataset
 from preprocessing.process_results import load_max_precision_results
 from config import Config
 
@@ -20,30 +19,33 @@ import json
 cfg = Config.get()
 
 
-# Specify path
-EVALUATIONS_PATH = os.path.join(cfg.out_dir, "evaluations")  # add /evaluations to path
-
-
-def calculate_best_configurations() -> Dict[str, Union[str, int, List[List[str]]]]:
+def calculate_best_configurations(dataset: Dataset, resample_factor: int) \
+        -> Dict[str, Union[str, int, List[List[str]]]]:
     """
     Calculate the best configurations for rank-method, classes, sensors and windows
+    :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Dictionary with best configurations
     """
     # Best rank-method
-    results = calculate_rank_method_precisions()
+    results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor)
     best_rank_method = get_best_rank_method_configuration(res=results)
 
     # Best class
-    average_results, weighted_average_results = calculate_average_class_precisions(rank_method=best_rank_method)
+    average_results, weighted_average_results = calculate_average_class_precisions(dataset=dataset,
+                                                                                   resample_factor=resample_factor,
+                                                                                   rank_method=best_rank_method)
     best_class_method = get_best_class_configuration(average_res=average_results,
                                                      weighted_average_res=weighted_average_results)
 
     # Best sensors
-    results = calculate_sensor_precisions(rank_method=best_rank_method, average_method=best_class_method)
+    results = calculate_sensor_precisions(dataset=dataset, resample_factor=resample_factor,
+                                          rank_method=best_rank_method, average_method=best_class_method)
     best_sensors = get_best_sensor_configuration(res=results)
 
     # Best window
-    results = calculate_window_precisions(rank_method=best_rank_method, average_method=best_class_method,
+    results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor,
+                                          rank_method=best_rank_method, average_method=best_class_method,
                                           sensor_combination=best_sensors)
     best_window = get_best_window_configuration(res=results)
 
@@ -53,17 +55,23 @@ def calculate_best_configurations() -> Dict[str, Union[str, int, List[List[str]]
     return best_configurations
 
 
-def get_average_max_precision(average_method: str, window: int, k: int) -> float:
+def get_average_max_precision(dataset: Dataset, resample_factor: int, average_method: str, window: int, k: int) \
+        -> float:
     """
     Calculate average max-precision for specified averaging method
+    :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param average_method: Specify averaging method ("mean" or "weighted-mean")
     :param window: Specify test-window-size
     :param k: Specify k parameter
     :return: Average max-precision
     """
-    baseline_results = load_max_precision_results(method="baseline", test_window_size=window, k=k)
-    amusement_results = load_max_precision_results(method="amusement", test_window_size=window, k=k)
-    stress_results = load_max_precision_results(method="stress", test_window_size=window, k=k)
+    baseline_results = load_max_precision_results(dataset=dataset, resample_factor=resample_factor, method="baseline",
+                                                  test_window_size=window, k=k)
+    amusement_results = load_max_precision_results(dataset=dataset, resample_factor=resample_factor, method="amusement",
+                                                   test_window_size=window, k=k)
+    stress_results = load_max_precision_results(dataset=dataset, resample_factor=resample_factor, method="stress",
+                                                test_window_size=window, k=k)
 
     result = None
     try:
@@ -73,7 +81,7 @@ def get_average_max_precision(average_method: str, window: int, k: int) -> float
                                             stress_results["precision"]]), 3)
         # Averaging method = "weighted-mean"
         else:
-            class_distributions = get_class_distribution()
+            class_distributions = get_class_distribution(dataset=dataset)
             result = round(baseline_results["precision"] * class_distributions["baseline"] +
                            amusement_results["precision"] * class_distributions["amusement"] +
                            stress_results["precision"] * class_distributions["stress"], 3)
@@ -84,27 +92,33 @@ def get_average_max_precision(average_method: str, window: int, k: int) -> float
     return result
 
 
-def get_random_guess_precision(k: int) -> float:
+def get_random_guess_precision(dataset: Dataset, k: int) -> float:
     """
     Calculate precision for random guess
+    :param dataset: Specify dataset
     :param k: Specify k parameter
     :return: Random guess precision
     """
-    amount_subjects = len(get_subject_list())
+    amount_subjects = len(dataset.get_subject_list())
     result = round(k / amount_subjects, 3)
     return result
 
 
-def calculate_optimized_precisions(k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
+def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, k_list: List[int] = None) \
+        -> Dict[int, Dict[str, float]]:
     """
     Calculate overall evaluation precision scores (DTW-results, maximum results and random guess results)
+    :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param k_list: List with all k's
     :return: Dictionary with results
     """
     if k_list is None:
         k_list = [1, 3, 5]
 
-    best_configuration = calculate_best_configurations()
-    results = calculate_window_precisions(rank_method=best_configuration["rank_method"],
+    best_configuration = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor)
+    results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor,
+                                          rank_method=best_configuration["rank_method"],
                                           average_method=best_configuration["class"],
                                           sensor_combination=best_configuration["sensor"], k_list=k_list)
 
@@ -114,23 +128,26 @@ def calculate_optimized_precisions(k_list: List[int] = None) -> Dict[int, Dict[s
         overall_results.setdefault(k, {"results": results[k][best_configuration["window"]]})
 
         # Calculate maximum results
-        overall_results[k].setdefault("max", get_average_max_precision(average_method=best_configuration["class"],
+        overall_results[k].setdefault("max", get_average_max_precision(dataset=dataset, resample_factor=resample_factor,
+                                                                       average_method=best_configuration["class"],
                                                                        window=best_configuration["window"], k=k))
 
         # Calculate random guess results
-        overall_results[k].setdefault("random", get_random_guess_precision(k=k))
+        overall_results[k].setdefault("random", get_random_guess_precision(dataset=dataset, k=k))
 
     return overall_results
 
 
-def calculate_best_k_parameters() -> Dict[str, int]:
+def calculate_best_k_parameters(dataset: Dataset, resample_factor: int) -> Dict[str, int]:
     """
     Calculate k-parameters where precision@k == 1
+    :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Dictionary with results
     """
-    amount_subjects = len(get_subject_list())
+    amount_subjects = len(dataset.get_subject_list())
     k_list = list(range(1, amount_subjects + 1))  # List with all possible k parameters
-    results = calculate_optimized_precisions(k_list=k_list)
+    results = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor, k_list=k_list)
     best_k_parameters = dict()
 
     set_method = False
@@ -149,17 +166,19 @@ def calculate_best_k_parameters() -> Dict[str, int]:
     return best_k_parameters
 
 
-def get_best_sensor_weightings(test_window_size: int, methods: List[str] = None, k_list: List[int] = None) \
-        -> Dict[str, Dict[int, List[Dict[str, float]]]]:
+def get_best_sensor_weightings(dataset: Dataset, resample_factor: int, test_window_size: int, methods: List[str] = None,
+                               k_list: List[int] = None) -> Dict[str, Dict[int, List[Dict[str, float]]]]:
     """
     Calculate best sensor-weightings for specified window-size
+    :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param test_window_size: Specify test-window-size
     :param methods: List with methods (baseline, amusement, stress); if None: all methods are used
     :param k_list: Specify k parameters for precision@k; if None: 1, 3, 5 are used
     :return: Dictionary with weighting results
     """
     if methods is None:
-        methods = get_classes()
+        methods = dataset.get_classes()
     if k_list is None:
         k_list = [1, 3, 5]
 
@@ -167,20 +186,25 @@ def get_best_sensor_weightings(test_window_size: int, methods: List[str] = None,
     for method in methods:
         weightings.setdefault(method, dict())
         for k in k_list:
-            results = load_max_precision_results(k=k, method=method, test_window_size=test_window_size)
+            results = load_max_precision_results(dataset=dataset, resample_factor=resample_factor, k=k, method=method,
+                                                 test_window_size=test_window_size)
             weightings[method].setdefault(k, results["weights"])
 
     return weightings
 
 
-def run_overall_evaluation(save_weightings: bool = False):
+def run_overall_evaluation(dataset: Dataset, resample_factor: int, save_weightings: bool = False):
     """
     Run and save overall evaluation (DTW-results, maximum results, random guess results)
+    :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param save_weightings: If true -> Weighting will be saved as json-file
     """
-    best_configuration = calculate_best_configurations()
-    overall_results = calculate_optimized_precisions()
-    weightings = get_best_sensor_weightings(test_window_size=best_configuration["window"])
-    best_k_parameters = calculate_best_k_parameters()
+    best_configuration = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor)
+    overall_results = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor)
+    weightings = get_best_sensor_weightings(dataset=dataset, resample_factor=resample_factor,
+                                            test_window_size=best_configuration["window"])
+    best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor)
 
     text = [create_md_precision_overall(results=overall_results, rank_method=best_configuration["rank_method"],
                                         average_method=best_configuration["class"],
@@ -189,19 +213,22 @@ def run_overall_evaluation(save_weightings: bool = False):
                                         best_k_parameters=best_k_parameters)]
 
     # Save MD-File
-    os.makedirs(EVALUATIONS_PATH, exist_ok=True)
+    data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
+    evaluations_path = os.path.join(resample_path, "evaluations")  # add /evaluations to path
+    os.makedirs(evaluations_path, exist_ok=True)
 
-    path_string = "/SW-DTW_evaluation_overall.md"
-    with open(EVALUATIONS_PATH + path_string, 'w') as outfile:
+    path_string = "SW-DTW_evaluation_overall.md"
+    with open(os.path.join(evaluations_path, path_string), 'w') as outfile:
         for item in text:
             outfile.write("%s\n" % item)
 
-    print("SW-DTW evaluation overall saved at: " + str(EVALUATIONS_PATH))
+    print("SW-DTW evaluation overall saved at: " + str(evaluations_path))
 
     # Save weightings as JSON-File
     if save_weightings:
-        path_string = "/SW-DTW_evaluation_weightings.json"
-        with open(EVALUATIONS_PATH + path_string, "w", encoding="utf-8") as outfile:
+        path_string = "SW-DTW_evaluation_weightings.json"
+        with open(os.path.join(evaluations_path, path_string), "w", encoding="utf-8") as outfile:
             json.dump(weightings, outfile)
 
-        print("SW-DTW evaluation weightings saved at: " + str(EVALUATIONS_PATH))
+        print("SW-DTW evaluation weightings saved at: " + str(evaluations_path))

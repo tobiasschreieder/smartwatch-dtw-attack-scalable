@@ -1,6 +1,6 @@
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
-from preprocessing.datasets.load_wesad import get_sensor_combinations, get_subject_list
+from preprocessing.datasets.dataset import Dataset
 
 from typing import List, Dict
 
@@ -31,7 +31,7 @@ def bold_minimums(value: float, sensor: str, results) -> str:
     return text
 
 
-def bold_subject(subject: int, check_subject: int) -> str:
+def bold_subject(subject: str, check_subject: int) -> str:
     """
     Bold subject with minimum score
     :param subject: subject to check if it should be bolded
@@ -108,10 +108,11 @@ def bold_maximum_precision(precision_comb: Dict[str, float], value: float) -> st
     return text
 
 
-def create_md_precision_combinations(rank_method: str, method: str, test_window_size: int, max_k: int = 15,
-                                     subject_ids: List[int] = None, k_list: List[int] = None) -> str:
+def create_md_precision_combinations(dataset: Dataset, resample_factor: int, rank_method: str, method: str, test_window_size: int,
+                                     max_k: int = 15, subject_ids: List[int] = None, k_list: List[int] = None) -> str:
     """
     Create text for md-file with precision@k scores for all sensor combinations
+    :param dataset: Specify dataset
     :param rank_method: Specify ranking-method ("rank", "score")
     :param method: Specify method ("baseline", "amusement", "stress")
     :param test_window_size: Specify test-window-size
@@ -121,16 +122,17 @@ def create_md_precision_combinations(rank_method: str, method: str, test_window_
     :return: String with MD text
     """
     if subject_ids is None:
-        subject_ids = get_subject_list()
+        subject_ids = dataset.get_subject_list()
 
-    sensor_combinations = get_sensor_combinations()
+    sensor_combinations = dataset.get_sensor_combinations()
 
     text = "### Precision@k table combinations (method: " + rank_method + ")" + "\n"
 
-    realistic_ranks_comb = get_realistic_ranks_combinations(rank_method=rank_method,
-                                                            combinations=sensor_combinations, method=method,
-                                                            test_window_size=test_window_size, subject_ids=subject_ids)
-    precision_comb_1 = calculate_precision_combinations(realistic_ranks_comb=realistic_ranks_comb, k=1)
+    realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset, resample_factor=resample_factor,
+                                                            rank_method=rank_method, combinations=sensor_combinations,
+                                                            method=method, test_window_size=test_window_size,
+                                                            subject_ids=subject_ids)
+    precision_comb_1 = calculate_precision_combinations(dataset=dataset, realistic_ranks_comb=realistic_ranks_comb, k=1)
 
     text += "| Precision@k | "
     for i in precision_comb_1:
@@ -144,14 +146,16 @@ def create_md_precision_combinations(rank_method: str, method: str, test_window_
 
     if k_list is None:
         for i in range(1, max_k + 1):
-            precision_comb = calculate_precision_combinations(realistic_ranks_comb, i)
+            precision_comb = calculate_precision_combinations(dataset=dataset,
+                                                              realistic_ranks_comb=realistic_ranks_comb, k=i)
             text += "| k = " + str(i) + " | "
             for k, v in precision_comb.items():
                 text += bold_maximum_precision(precision_comb, v) + " | "
             text += "\n"
     else:
         for i in k_list:
-            precision_comb = calculate_precision_combinations(realistic_ranks_comb, i)
+            precision_comb = calculate_precision_combinations(dataset=dataset,
+                                                              realistic_ranks_comb=realistic_ranks_comb, k=i)
             text += "| k = " + str(i) + " | "
             for k, v in precision_comb.items():
                 text += bold_maximum_precision(precision_comb, v) + " | "

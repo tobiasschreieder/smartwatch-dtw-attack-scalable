@@ -1,8 +1,8 @@
-from alignments.dtw_attack import get_classes, get_windows
+from alignments.dtw_attack import get_windows
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.create_md_tables import create_md_precision_rank_method
-from preprocessing.datasets.load_wesad import get_sensor_combinations, get_subject_list
+from preprocessing.datasets.dataset import Dataset
 from config import Config
 
 from typing import List, Dict
@@ -14,25 +14,24 @@ import random
 cfg = Config.get()
 
 
-# Specify path
-EVALUATIONS_PATH = os.path.join(cfg.out_dir, "evaluations")  # add /evaluations to path
-
-
-def calculate_rank_method_precisions(subject_ids: List = None, k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
+def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, subject_ids: List = None,
+                                     k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
     """
     Calculate precision@k values for rank-method evaluation -> Mean over sensor-combinations, methods
+    :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param k_list: Specify k parameters; if None: 1, 3, 5 are used
     :return: Dictionary with precision values
     """
-    sensor_combinations = get_sensor_combinations()  # Get all sensor-combinations
-    classes = get_classes()  # Get all classes
+    sensor_combinations = dataset.get_sensor_combinations()  # Get all sensor-combinations
+    classes = dataset.get_classes()  # Get all classes
     test_window_sizes = get_windows()  # Get all test-window-sizes
     if k_list is None:
         k_list = [1, 3, 5]  # List with all k for precision@k that should be considered
 
     if subject_ids is None:
-        subject_ids = get_subject_list()
+        subject_ids = dataset.get_subject_list()
 
     class_results_dict = dict()
     for method in classes:
@@ -41,23 +40,29 @@ def calculate_rank_method_precisions(subject_ids: List = None, k_list: List[int]
             results_sensor = dict()
             for k in k_list:
                 # Calculate realistic ranks with rank method "rank"
-                realistic_ranks_comb_rank = get_realistic_ranks_combinations(rank_method="rank",
+                realistic_ranks_comb_rank = get_realistic_ranks_combinations(dataset=dataset,
+                                                                             resample_factor=resample_factor,
+                                                                             rank_method="rank",
                                                                              combinations=sensor_combinations,
                                                                              method=method,
                                                                              test_window_size=test_window_size,
                                                                              subject_ids=subject_ids)
                 # Calculate precision values with rank method "rank"
-                precision_comb_rank = calculate_precision_combinations(realistic_ranks_comb=realistic_ranks_comb_rank,
+                precision_comb_rank = calculate_precision_combinations(dataset=dataset,
+                                                                       realistic_ranks_comb=realistic_ranks_comb_rank,
                                                                        k=k)
 
                 # Calculate realistic ranks with rank method "score"
-                realistic_ranks_comb_score = get_realistic_ranks_combinations(rank_method="score",
+                realistic_ranks_comb_score = get_realistic_ranks_combinations(dataset=dataset,
+                                                                              resample_factor=resample_factor,
+                                                                              rank_method="score",
                                                                               combinations=sensor_combinations,
                                                                               method=method,
                                                                               test_window_size=test_window_size,
                                                                               subject_ids=subject_ids)
                 # Calculate precision values with rank method "score"
-                precision_comb_score = calculate_precision_combinations(realistic_ranks_comb=realistic_ranks_comb_score,
+                precision_comb_score = calculate_precision_combinations(dataset=dataset,
+                                                                        realistic_ranks_comb=realistic_ranks_comb_score,
                                                                         k=k)
 
                 # Calculate mean over precision-values per sensor-combinations for methods "rank" and "score"
@@ -109,14 +114,16 @@ def calculate_rank_method_precisions(subject_ids: List = None, k_list: List[int]
     return results
 
 
-def calculate_best_k_parameters() -> Dict[str, int]:
+def calculate_best_k_parameters(dataset: Dataset, resample_factor: int) -> Dict[str, int]:
     """
     Calculate k-parameters where precision@k == 1
+    :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :return: Dictionary with results
     """
-    amount_subjects = len(get_subject_list())
+    amount_subjects = len(dataset.get_subject_list())
     k_list = list(range(1, amount_subjects + 1))  # List with all possible k parameters
-    results = calculate_rank_method_precisions(k_list=k_list)
+    results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor, k_list=k_list)
     best_k_parameters = dict()
 
     set_method = False
@@ -155,22 +162,27 @@ def get_best_rank_method_configuration(res: Dict[int, Dict[str, float]]) -> str:
     return best_rank_method
 
 
-def run_rank_method_evaluation():
+def run_rank_method_evaluation(dataset: Dataset, resample_factor: int):
     """
     Run and save evaluation for rank-methods
+    :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     """
-    results = calculate_rank_method_precisions()
+    results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor)
     best_rank_method = get_best_rank_method_configuration(res=results)
-    best_k_parameters = calculate_best_k_parameters()
+    best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor)
     text = [create_md_precision_rank_method(results=results, best_rank_method=best_rank_method,
                                             best_k_parameters=best_k_parameters)]
 
     # Save MD-File
-    os.makedirs(EVALUATIONS_PATH, exist_ok=True)
+    data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
+    evaluations_path = os.path.join(resample_path, "evaluations")  # add /evaluations to path
+    os.makedirs(evaluations_path, exist_ok=True)
 
-    path_string = "/SW-DTW_evaluation_rank_methods.md"
-    with open(EVALUATIONS_PATH + path_string, 'w') as outfile:
+    path_string = "SW-DTW_evaluation_rank_methods.md"
+    with open(os.path.join(evaluations_path, path_string), 'w') as outfile:
         for item in text:
             outfile.write("%s\n" % item)
 
-    print("SW-DTW evaluation for rank-methods saved at: " + str(EVALUATIONS_PATH))
+    print("SW-DTW evaluation for rank-methods saved at: " + str(evaluations_path))

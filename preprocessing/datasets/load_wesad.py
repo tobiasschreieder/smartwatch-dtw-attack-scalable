@@ -1,3 +1,4 @@
+from preprocessing.datasets.dataset import Dataset
 from config import Config
 
 from typing import Dict, List
@@ -12,6 +13,9 @@ cfg = Config.get()
 
 # List with all available subject_ids
 SUBJECT_LIST = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17]
+
+# All available classes
+CLASSES = ["baseline", "amusement", "stress"]
 
 # List with all sensor combinations
 SENSOR_COMBINATIONS = [["bvp"], ["eda"], ["acc"], ["temp"], ["bvp", "eda"], ["bvp", "temp"], ["bvp", "acc"],
@@ -90,21 +94,25 @@ class Subject:
         return df
 
 
-class Wesad:
+class Wesad(Dataset):
     """
     Class to generate, load and preprocess WESAD dataset
     """
     def __init__(self):
         """
-        Try to load preprocessed WESAD dataset (data_dict.pickle); if not available -> generate data_dict.pickle
+        Try to load preprocessed WESAD dataset (wesad_data.pickle); if not available -> generate wesad_data.pickle
         """
+        super().__init__()
+
+        self.name = "WESAD"
+
         try:
-            with open(os.path.join(cfg.data_dir, 'data_dict.pickle'), "rb") as f:
+            with open(os.path.join(cfg.data_dir, 'wesad_data.pickle'), "rb") as f:
                 self.data = pickle.load(f)
 
         except FileNotFoundError:
             print("FileNotFoundError: Invalid directory structure! Please make sure that /dataset exists.")
-            print("Creating data_dict.pickle from WESAD dataset.")
+            print("Creating wesad_data.pickle from WESAD dataset.")
 
             # Load data of all subjects in subject_list
             data_dict = dict()
@@ -116,7 +124,7 @@ class Wesad:
 
             # Save data_dict
             try:
-                with open(os.path.join(cfg.data_dir, 'data_dict.pickle'), 'wb') as f:
+                with open(os.path.join(cfg.data_dir, 'wesad_data.pickle'), 'wb') as f:
                     pickle.dump(data_dict, f)
 
             except FileNotFoundError:
@@ -156,18 +164,30 @@ class Wesad:
 
         return data_dict
 
+    def get_dataset_name(self) -> str:
+        """
+        Get name of dataset
+        :return: String with name
+        """
+        return self.name
 
-def get_subject_list() -> List[int]:
-    """
-    Get list with all available subjects
-    :return: List with subject-ids
-    """
-    return SUBJECT_LIST
+    def get_subject_list(self) -> List[int]:
+        """
+        Get list with all available subjects
+        :return: List with subject-ids
+        """
+        return SUBJECT_LIST
 
+    def get_sensor_combinations(self) -> List[List[str]]:
+        """
+        Get sensor-combinations
+        :return: sensor-combinations
+        """
+        return SENSOR_COMBINATIONS
 
-def get_sensor_combinations() -> List[List[str]]:
-    """
-    Get sensor-combinations
-    :return: sensor-combinations
-    """
-    return SENSOR_COMBINATIONS
+    def get_classes(self) -> List[str]:
+        """
+        Get classes ("baseline", "amusement", "stress")
+        :return: List with all classes
+        """
+        return CLASSES

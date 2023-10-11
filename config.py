@@ -5,7 +5,7 @@ from pathlib import Path
 class Config:
 
     main_dir: Path = Path()
-    data_dir: Path = Path('data/')
+    data_dir: Path = Path('dataset/')
     out_dir: Path = Path('out/')
 
     _save_path = Path('config.json')
@@ -23,11 +23,11 @@ class Config:
                     cfg_json = json.load(f)
                 cfg.main_dir = Path(cfg_json.get('main_dir', cfg.main_dir))
                 cfg.data_dir = Path(cfg_json.get('data_dir', cfg.data_dir))
-                cfg.output_dir = Path(cfg_json.get('out_dir', cfg.output_dir))
+                cfg.output_dir = Path(cfg_json.get('out_dir', cfg.out_dir))
             except json.JSONDecodeError:
                 pass
         cfg.save()
-        print('Config loaded')
+        print('Config loaded.')
 
         Config._cfg = cfg
         return cfg
@@ -42,5 +42,5 @@ class Config:
         return {
             'main_dir': str(self.main_dir),
             'data_dir': str(self.data_dir),
-            'output_dir': str(self.out_dir)
+            'out_dir': str(self.out_dir)
         }
