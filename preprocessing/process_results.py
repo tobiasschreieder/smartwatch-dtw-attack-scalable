@@ -86,7 +86,7 @@ def load_max_precision_results(dataset: Dataset, resample_factor: int, method: s
 
 
 def load_complete_alignment_results(dataset: Dataset, resample_factor: int, subject_id: int,
-                                    normalized_data: bool = True) -> Dict[str, float]:
+                                    normalized_data: bool = False) -> Dict[str, float]:
     """
     Load complete alignment results from ../out/alignments/complete
     :param dataset: Specify dataset
@@ -103,9 +103,9 @@ def load_complete_alignment_results(dataset: Dataset, resample_factor: int, subj
         complete_path = os.path.join(alignments_path, "complete")  # add /complete to path
 
         if normalized_data:
-            path = os.path.join(complete_path, "/SW-DTW_results_normalized_complete_S" + str(subject_id) + ".json")
+            path = os.path.join(complete_path, "SW-DTW_results_normalized_complete_S" + str(subject_id) + ".json")
         else:
-            path = os.path.join(complete_path, "/SW-DTW_results_standard_complete_S" + str(subject_id) + ".json")
+            path = os.path.join(complete_path, "SW-DTW_results_standard_complete_S" + str(subject_id) + ".json")
 
         f = open(path, "r")
         results = json.loads(f.read())

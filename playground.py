@@ -1,6 +1,6 @@
 from alignments.dtw_attack import run_calculations
 from alignments.dtw_alignment import run_dtw_alignments
-from evaluation.analysis.exploratory_data_analysis import plot_subject_data, plot_alignment_heatmap
+from evaluation.analysis.exploratory_data_analysis import plot_subject_data, plot_distance_heatmap
 from evaluation.evaluation import subject_evaluation, precision_evaluation, run_optimization_evaluation, \
     run_calculate_max_precision
 from evaluation.optimization.class_evaluation import run_class_evaluation
@@ -20,7 +20,7 @@ dataset = Wesad()
 resample_factor = 1000
 
 """1. Plot exploratory data analysis to /out/eda"""
-# plot_subject_data(dataset=dataset)
+# plot_subject_data(dataset=dataset, resample_factor=resample_factor)
 
 """2. Calculate DTW-alignments and save results to /out/alignments"""
 # run_calculations(dataset=dataset, methods=["baseline", "amusement", "stress"], test_window_sizes=[1, 2, 3],
@@ -30,7 +30,7 @@ resample_factor = 1000
 # run_dtw_alignments(dataset=dataset, resample_factor=resample_factor)
 
 """4. Plot DTW alignment subject distance heatmap and save plot to /out/eda"""
-# plot_alignment_heatmap(dataset=dataset)
+# plot_distance_heatmap(dataset=dataset, resample_factor=resample_factor)
 
 """5. Evaluate DTW-alignment results per subject; save MD-tables with distance and rank results and realistic-rank-plots
 to /out/subject-plots"""

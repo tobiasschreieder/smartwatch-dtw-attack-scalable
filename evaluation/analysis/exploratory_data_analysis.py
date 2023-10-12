@@ -10,16 +10,18 @@ import numpy as np
 cfg = Config.get()
 
 
-# Specify path
-EDA_PATH = os.path.join(cfg.out_dir, "eda")  # add /eda to path
-
-
-def plot_subject_data(dataset: Dataset):
+def plot_subject_data(dataset: Dataset, resample_factor: int):
     """
     Plot sensor-value distribution for all subjects
     :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     """
-    data_dict = dataset.load_dataset()  # read data_dict
+    data_dict = dataset.load_dataset(resample_factor=resample_factor)  # read data_dict
+
+    data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
+    eda_path = os.path.join(resample_path, "eda")  # add /eda to path
+    os.makedirs(eda_path, exist_ok=True)
 
     for subject in data_dict:
         plt.plot(data_dict[subject])
@@ -29,8 +31,9 @@ def plot_subject_data(dataset: Dataset):
         plt.xlabel('index | time')
 
         try:
-            os.makedirs(EDA_PATH, exist_ok=True)
-            plt.savefig(fname=EDA_PATH + "/eda_plot_S" + str(subject) + ".png")
+            os.makedirs(eda_path, exist_ok=True)
+            file_name = "eda_plot_S" + str(subject) + ".png"
+            plt.savefig(fname=os.path.join(eda_path, file_name))
 
         except FileNotFoundError:
             print("FileNotFoundError: Invalid directory structure!")
@@ -38,10 +41,11 @@ def plot_subject_data(dataset: Dataset):
         plt.close()
 
 
-def plot_alignment_heatmap(dataset: Dataset, normalized_data: bool = True):
+def plot_distance_heatmap(dataset: Dataset, resample_factor: int, normalized_data: bool = False):
     """
-    Plot complete subject alignments as heatmap
+    Plot complete subject distance as heatmap
     :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param normalized_data: If True -> use normalized results
     """
     subject_ids = dataset.get_subject_list()
@@ -50,10 +54,8 @@ def plot_alignment_heatmap(dataset: Dataset, normalized_data: bool = True):
 
     # Load data
     for subject_id in subject_ids:
-        results = load_complete_alignment_results(subject_id=subject_id, normalized_data=normalized_data)
-        # Change distance to similarity
-        for res in results:
-            results[res] = 1 - results[res]
+        results = load_complete_alignment_results(dataset=dataset, resample_factor=resample_factor,
+                                                  subject_id=subject_id, normalized_data=normalized_data)
         data.setdefault(subject_id, list(results.values()))
 
     for subject_id in data:
@@ -77,10 +79,14 @@ def plot_alignment_heatmap(dataset: Dataset, normalized_data: bool = True):
     plt.rc("font", size=24)
 
     # Save heatmap as png
+    data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
+    eda_path = os.path.join(resample_path, "eda")  # add /eda to path
+    os.makedirs(eda_path, exist_ok=True)
+
     try:
-        os.makedirs(EDA_PATH, exist_ok=True)
-        plt.savefig(fname=EDA_PATH + "/eda_dtw_alignment_heatmap.pdf", format="pdf", transparent=True,
-                    bbox_inches="tight")
+        file_name = "eda_dtw_alignment_heatmap.pdf"
+        plt.savefig(fname=os.path.join(eda_path, file_name), format="pdf", transparent=True, bbox_inches="tight")
 
     except FileNotFoundError:
         print("FileNotFoundError: Invalid directory structure!")
