@@ -13,7 +13,7 @@ cfg = Config.get()
 
 
 WINDOWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 50, 100, 500, 1000]  # All calculated window-sizes
-WINDOWS = [2, 20]
+WINDOWS = [1, 2, 3]
 
 
 def get_windows() -> List[int]:
@@ -25,7 +25,7 @@ def get_windows() -> List[int]:
 
 
 def create_subject_data(dataset: Dataset, method: str, test_window_size: int, subject_id: int,
-                        additional_windows: int = 10, resample_factor: int = 1) \
+                        additional_windows: int = 1000, resample_factor: int = 1) \
         -> Tuple[Dict[str, Dict[int, Dict[str, pd.DataFrame]]], Dict[int, Dict[str, int]]]:
     """
     Create dictionary with all subjects and their sensor data as Dataframe split into train and test data
@@ -74,28 +74,32 @@ def create_subject_data(dataset: Dataset, method: str, test_window_size: int, su
             data_end = label_data.iloc[round(len(label_data) * 0.5):, :]
 
             # Create test and train data
-            amount_remove_windows = max(1 + int(round(test_window_size * 0.5)),
-                                        int((round(test_window_size * 0.5) + additional_windows) / resample_factor))
-            if test_window_size % 2 == 0:
-                test_1 = data_start.iloc[(len(data_end) - round(test_window_size * 0.5)):, :]
-                test_2 = data_end.iloc[:round(test_window_size * 0.5), :]
+            amount_remove_windows = (max(1, int(round(test_window_size * 0.5))) +
+                                     int(additional_windows / resample_factor))
+            amount_test_windows = max(1, int(test_window_size * 0.5))
+
+            # Test-window-size == 1
+            if test_window_size == 1:
+                test_1 = data_start.iloc[len(data_end):, :]
+                test_2 = data_end.iloc[:1, :]
                 remove_1 = data_start.iloc[(len(data_end) - amount_remove_windows):, :]
                 remove_2 = data_end.iloc[:amount_remove_windows, :]
 
-            elif test_window_size == 1:
-                test_1 = data_start.iloc[(len(data_end) - 1):, :]
-                test_2 = data_end.iloc[:0, :]
-                remove_1 = data_start.iloc[(len(data_end) - (1 + max(1, int(additional_windows / resample_factor)))
-                                            ):, :]
+            # Test-window-size == 2, 4, 6, ...
+            elif test_window_size % 2 == 0:
+                test_1 = data_start.iloc[(-1 * amount_test_windows):]
+                test_2 = data_end.iloc[:amount_test_windows, :]
+                remove_1 = data_start.iloc[(-1 * amount_remove_windows):]
                 remove_2 = data_end.iloc[:amount_remove_windows, :]
 
+            # Test-window-size = 3, 5, 7, ...
             else:
-                test_1 = data_start.iloc[(len(data_end) - (round(test_window_size * 0.5))):, :]
-                test_2 = data_end.iloc[:(round(test_window_size * 0.5) - 1), :]
-                remove_1 = data_start.iloc[(len(data_end) - max(1, int((round(amount_remove_windows / resample_factor)
-                                                                        )))):, :]
-                remove_2 = data_end.iloc[:(amount_remove_windows - 1), :]
+                test_1 = data_start.iloc[(-1 * amount_test_windows):]
+                test_2 = data_end.iloc[:(amount_test_windows + 1), :]
+                remove_1 = data_start.iloc[(-1 * (amount_remove_windows - 1)):]
+                remove_2 = data_end.iloc[:amount_remove_windows, :]
 
+            # Combine start and end DataFrame
             test = pd.concat([test_1, test_2])
             remove = pd.concat([remove_1, remove_2])
             train = data_dict[subject].drop(remove.index)

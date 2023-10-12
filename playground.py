@@ -23,7 +23,7 @@ resample_factor = 1000
 # plot_subject_data(dataset=dataset)
 
 """2. Calculate DTW-alignments and save results to /out/alignments"""
-# run_calculations(dataset=dataset, methods=["baseline", "amusement", "stress"], test_window_sizes=[1],
+# run_calculations(dataset=dataset, methods=["baseline", "amusement", "stress"], test_window_sizes=[1, 2, 3],
 #                  resample_factor=resample_factor, additional_windows=1000)
 
 """3. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
@@ -37,7 +37,7 @@ to /out/subject-plots"""
 # subject_evaluation(dataset=dataset, resample_factor=resample_factor)
 
 """6. Evaluation DTW-alignment results overall mit precision@k; save MD-tables with precision values"""
-precision_evaluation(dataset=dataset, resample_factor=resample_factor, k_list=[1, 3, 5])
+# precision_evaluation(dataset=dataset, resample_factor=resample_factor, k_list=[1, 3, 5])
 
 """7. Evaluation of rank-method; save precision@k values as MD-table"""
 # run_rank_method_evaluation(dataset=dataset, resample_factor=resample_factor)
