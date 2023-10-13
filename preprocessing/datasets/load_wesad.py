@@ -30,7 +30,6 @@ class Subject:
     Preprocessing based on Gil-Martin et al. 2022: Human stress detection with wearable sensors using convolutional
     neural networks: https://ieeexplore.ieee.org/document/9669993
     """
-
     def __init__(self, data_path, subject_number):
         """
         Load WESAD dataset
@@ -107,7 +106,7 @@ class Wesad(Dataset):
         self.name = "WESAD"
 
         try:
-            with open(os.path.join(cfg.data_dir, 'wesad_data.pickle'), "rb") as f:
+            with open(os.path.join(cfg.data_dir, 'wesad_gan_data.pickle'), "rb") as f:
                 self.data = pickle.load(f)
 
         except FileNotFoundError:
