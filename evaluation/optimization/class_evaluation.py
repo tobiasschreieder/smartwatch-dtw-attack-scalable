@@ -120,6 +120,9 @@ def calculate_average_class_precisions(dataset: Dataset, resample_factor: int, r
     if k_list is None:
         k_list = [1, 3, 5]  # List with all k for precision@k that should be considered
 
+    if subject_ids is None:
+        subject_ids = dataset.get_subject_list()  # List with all subject-ids
+
     results = calculate_class_precisions(dataset=dataset, resample_factor=resample_factor, rank_method=rank_method,
                                          subject_ids=subject_ids, k_list=k_list)
     class_distribution = get_class_distribution(dataset=dataset)
@@ -136,6 +139,10 @@ def calculate_average_class_precisions(dataset: Dataset, resample_factor: int, r
             weighted_average_precision += results[k][method] * class_distribution[method]
         average_results[k] = round(statistics.mean(average_precision_list), 3)
         weighted_average_results[k] = round(weighted_average_precision, 3)
+
+    # Handle rounding errors for maximum k
+    if weighted_average_results[len(results)] != 1.0:
+        weighted_average_results[len(results)] = 1.0
 
     return average_results, weighted_average_results
 
@@ -178,12 +185,13 @@ def calculate_best_average_k_parameters(dataset: Dataset, resample_factor: int, 
     :param rank_method: Specify ranking-method ("score" or "rank")
     :return: Dictionary with results
     """
-    amount_subjects = len(dataset.get_subject_list())
-    k_list = list(range(1, amount_subjects + 1))  # List with all possible k parameters
+    subject_ids = dataset.get_subject_list()
+    k_list = list(range(1, len(subject_ids) + 1))  # List with all possible k parameters
     average_results, weighted_average_results = calculate_average_class_precisions(dataset=dataset,
                                                                                    resample_factor=resample_factor,
                                                                                    rank_method=rank_method,
-                                                                                   k_list=k_list)
+                                                                                   k_list=k_list,
+                                                                                   subject_ids=subject_ids)
     best_average_k_parameters = dict()
     set_k = False
     for k, value in average_results.items():

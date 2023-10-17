@@ -79,13 +79,7 @@ class Subject:
         data_arrays = zip(bvp_upsampled, eda_upsampled, acc_x_upsampled, acc_y_upsampled, acc_z_upsampled,
                           temp_upsampled)
         df = pd.DataFrame(data=data_arrays, columns=['bvp', 'eda', 'acc_x', 'acc_y', 'acc_z', 'temp'])
-        """
-        df.index = pd.to_datetime(df.index, unit='s')
-        df = df.join(label_df)
-        df = df.rename(columns={"Label": "label"})
-        df['label'] = df['label'].fillna(method='ffill')
-        df.reset_index(drop=True, inplace=True)
-        """
+
         df.index = [(1 / 64) * i for i in range(len(df))]  # 64 = sampling rate of BVP
         df.index = pd.to_datetime(df.index, unit='s')
         df = df.join(label_df)

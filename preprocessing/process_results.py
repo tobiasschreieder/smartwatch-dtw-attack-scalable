@@ -22,7 +22,12 @@ def load_results(dataset: Dataset, resample_factor: int, subject_id: int, method
     :param normalized_data: True if normalized results should be used
     :return: Dictionary with results
     """
-    results = dict()
+    subject_ids = dataset.get_subject_list()
+    subject_ids_string = list()
+    for subject_id in subject_ids:
+        subject_ids_string.append(str(subject_id))
+
+    reduced_results = dict()
     try:
         data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
         resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
@@ -47,10 +52,16 @@ def load_results(dataset: Dataset, resample_factor: int, subject_id: int, method
             results[i].setdefault("acc", round(statistics.mean([results[i]["acc_x"], results[i]["acc_y"],
                                                                 results[i]["acc_z"]]), 4))
 
+        # Reduce results to specified subject-ids
+        reduced_results = dict()
+        for subject_id in results:
+            if subject_id in subject_ids_string:
+                reduced_results.setdefault(subject_id, results[subject_id])
+
     except FileNotFoundError:
         print("FileNotFoundError: no results with this configuration available")
 
-    return results
+    return reduced_results
 
 
 def load_max_precision_results(dataset: Dataset, resample_factor: int, method: str, test_window_size: int, k: int) \
