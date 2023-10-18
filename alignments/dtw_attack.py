@@ -13,7 +13,7 @@ cfg = Config.get()
 
 
 WINDOWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 50, 100, 500, 1000]  # All calculated window-sizes
-WINDOWS = [2]
+WINDOWS = [1, 2, 5, 10, 20, 30, 50, 100, 500]
 
 
 def get_windows() -> List[int]:
@@ -181,7 +181,6 @@ def calculate_alignment(dataset: Dataset, subject_id: int, method: str, test_win
                                                resample_factor=resample_factor)
 
     for subject in subject_data["train"]:
-        print("----Current subject: " + str(subject))
         results_standard.setdefault(subject, dict())
 
         for sensor in subject_data["train"][subject]:

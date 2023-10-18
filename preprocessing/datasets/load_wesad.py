@@ -106,7 +106,7 @@ class Wesad(Dataset):
         self.name = "WESAD"
 
         try:
-            with open(os.path.join(cfg.data_dir, 'wesad_gan_data.pickle'), "rb") as f:
+            with open(os.path.join(cfg.data_dir, 'wesad_data.pickle'), "rb") as f:
                 self.data = pickle.load(f)
 
         except FileNotFoundError:

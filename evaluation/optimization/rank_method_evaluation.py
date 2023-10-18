@@ -9,6 +9,7 @@ from typing import List, Dict
 import statistics
 import os
 import random
+import json
 
 
 cfg = Config.get()
@@ -49,7 +50,8 @@ def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, sub
                                                                              subject_ids=subject_ids)
                 # Calculate precision values with rank method "rank"
                 precision_comb_rank = calculate_precision_combinations(dataset=dataset,
-                                                                       realistic_ranks_comb=realistic_ranks_comb_rank,
+                                                                       realistic_ranks_comb=
+                                                                       realistic_ranks_comb_rank,
                                                                        k=k)
 
                 # Calculate realistic ranks with rank method "score"
@@ -62,10 +64,10 @@ def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, sub
                                                                               subject_ids=subject_ids)
                 # Calculate precision values with rank method "score"
                 precision_comb_score = calculate_precision_combinations(dataset=dataset,
-                                                                        realistic_ranks_comb=realistic_ranks_comb_score,
+                                                                        realistic_ranks_comb=
+                                                                        realistic_ranks_comb_score,
                                                                         k=k)
 
-                # Calculate mean over precision-values per sensor-combinations for methods "rank" and "score"
                 sensor_combined_precision_rank = statistics.mean(precision_comb_rank.values())
                 sensor_combined_precision_score = statistics.mean(precision_comb_score.values())
 

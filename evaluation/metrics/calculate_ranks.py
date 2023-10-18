@@ -1,10 +1,16 @@
 from preprocessing.datasets.dataset import Dataset
 from preprocessing.process_results import load_results
+from config import Config
 
 from typing import List, Dict, Tuple, Any
 import statistics
 import math
 import copy
+import os
+import json
+
+
+cfg = Config.get()
 
 
 def calculate_ranks_1(dataset: Dataset, results: Dict[str, Dict[str, float]]) \
@@ -335,15 +341,63 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, ran
     if subject_ids is None:
         subject_ids = dataset.get_subject_list()
 
-    realistic_ranks_comb = dict()
-    for subject_id in subject_ids:
-        results = load_results(dataset=dataset, resample_factor=resample_factor, subject_id=subject_id, method=method,
-                               test_window_size=test_window_size)
-        overall_ranks_comb = run_calculate_ranks_combinations(dataset=dataset, results=results, rank_method=rank_method,
-                                                              combinations=combinations, weights=weights)
+    # Rank-method == "rank" or "score":
+    if rank_method != "max":
+        # Specify paths
+        data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
+        resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
+        precision_path = os.path.join(resample_path, "precision")  # add /precision to path
+        method_path = os.path.join(precision_path, method)
+        window_path = os.path.join(method_path, "window-size=" + str(test_window_size))
+        os.makedirs(window_path, exist_ok=True)
+        path_string = ("SW-DTW_rank-method-results_" + str(method) + "_" + str(test_window_size) + ".json")
 
-        for k, v in overall_ranks_comb.items():
-            if k not in realistic_ranks_comb:
-                realistic_ranks_comb.setdefault(k, list())
-            realistic_ranks_comb[k].append(realistic_rank(v, subject_id))
+        # Try to load existing results
+        try:
+            f = open(os.path.join(window_path, path_string), "r")
+            realistic_ranks_comb = json.loads(f.read())
+            realistic_ranks_comb = realistic_ranks_comb[rank_method]
+
+        # Calculate and save results if not available
+        except FileNotFoundError:
+            realistic_ranks_comb = dict()
+            for rank_method in ["rank", "score"]:
+                realistic_ranks_comb.setdefault(rank_method, dict())
+                for subject_id in subject_ids:
+
+                    results = load_results(dataset=dataset, resample_factor=resample_factor, subject_id=subject_id,
+                                           method=method, test_window_size=test_window_size)
+                    overall_ranks_comb = run_calculate_ranks_combinations(dataset=dataset, results=results,
+                                                                          rank_method=rank_method,
+                                                                          combinations=combinations, weights=weights)
+
+                    for sensor, subject_rank in overall_ranks_comb.items():
+                        if sensor not in realistic_ranks_comb[rank_method]:
+                            realistic_ranks_comb[rank_method].setdefault(sensor, list())
+                        realistic_ranks_comb[rank_method][sensor].append(realistic_rank(subject_rank, subject_id))
+
+            # Save interim results as JSON-File
+            with open(os.path.join(window_path, path_string), "w", encoding="utf-8") as outfile:
+                json.dump(realistic_ranks_comb, outfile)
+
+            print("SW-DTW rank-results saved at: " + str(os.path.join(window_path, path_string)))
+
+            # Just return results for specified rank-method
+            realistic_ranks_comb = realistic_ranks_comb[rank_method]
+
+    # Rank-method == "max" (new calculation necessary):
+    else:
+        realistic_ranks_comb = dict()
+        for subject_id in subject_ids:
+            results = load_results(dataset=dataset, resample_factor=resample_factor, subject_id=subject_id,
+                                   method=method, test_window_size=test_window_size)
+            overall_ranks_comb = run_calculate_ranks_combinations(dataset=dataset, results=results,
+                                                                  rank_method=rank_method,
+                                                                  combinations=combinations, weights=weights)
+
+            for k, v in overall_ranks_comb.items():
+                if k not in realistic_ranks_comb:
+                    realistic_ranks_comb.setdefault(k, list())
+                realistic_ranks_comb[k].append(realistic_rank(v, subject_id))
+
     return realistic_ranks_comb

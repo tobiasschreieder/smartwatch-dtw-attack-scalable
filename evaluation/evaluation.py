@@ -105,9 +105,11 @@ def subject_evaluation(dataset: Dataset, resample_factor: int, plot_ranks: bool 
 
                 text_distances = create_md_distances(results=results, subject_id=subject)
                 text_ranks_rank = create_md_ranks(overall_ranks=overall_ranks_rank,
-                                                  individual_ranks=individual_ranks_rank, subject_id=subject)
+                                                  individual_ranks=individual_ranks_rank, subject_id=subject,
+                                                  rank_method="rank")
                 text_ranks_score = create_md_ranks(overall_ranks=overall_ranks_score,
-                                                   individual_ranks=individual_ranks_score, subject_id=subject)
+                                                   individual_ranks=individual_ranks_score, subject_id=subject,
+                                                   rank_method="score")
 
                 text.append("## Subject: " + str(subject))
                 text.append(text_distances)

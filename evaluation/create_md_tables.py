@@ -67,15 +67,17 @@ def create_md_distances(results: Dict[str, Dict[str, float]], subject_id: int) -
     return text
 
 
-def create_md_ranks(overall_ranks: Dict[str, int], individual_ranks: Dict[str, Dict[str, int]], subject_id: int) -> str:
+def create_md_ranks(overall_ranks: Dict[str, int], individual_ranks: Dict[str, Dict[str, int]], subject_id: int,
+                    rank_method: str) -> str:
     """
     Create md-file for overall precision@k scores with methods "rank" and "score"
     :param overall_ranks: Dictionary with overall-ranks
     :param individual_ranks: Dictionary with individual ranks
     :param subject_id: Specify subject-id
+    :param rank_method: Specify rank-method
     :return: String with MD-text
     """
-    text = "### Rank table for subject " + str(subject_id) + "\n"
+    text = "### Rank table for subject " + str(subject_id) + " using rank-method: " + str(rank_method) + "\n"
     text += "| Subject | BVP | EDA | ACC | TEMP | Overall |" + "\n"
     text += "|---|---|---|---|---|---|" + "\n"
 
@@ -108,11 +110,13 @@ def bold_maximum_precision(precision_comb: Dict[str, float], value: float) -> st
     return text
 
 
-def create_md_precision_combinations(dataset: Dataset, resample_factor: int, rank_method: str, method: str, test_window_size: int,
-                                     max_k: int = 15, subject_ids: List[int] = None, k_list: List[int] = None) -> str:
+def create_md_precision_combinations(dataset: Dataset, resample_factor: int, rank_method: str, method: str,
+                                     test_window_size: int, max_k: int = 15, subject_ids: List[int] = None,
+                                     k_list: List[int] = None) -> str:
     """
     Create text for md-file with precision@k scores for all sensor combinations
     :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param rank_method: Specify ranking-method ("rank", "score")
     :param method: Specify method ("baseline", "amusement", "stress")
     :param test_window_size: Specify test-window-size
