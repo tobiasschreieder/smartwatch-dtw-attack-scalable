@@ -18,14 +18,14 @@ Example Calculations
 """
 # Specify parameters
 dataset = Wesad()
-resample_factor = 1
+resample_factor = 1000
 
 
 """1. Plot exploratory data analysis to /out/eda"""
 # plot_subject_data(dataset=dataset, resample_factor=resample_factor)
 
 """2. Calculate DTW-alignments and save results to /out/alignments"""
-# run_calculations(dataset=dataset, test_window_sizes=[20], resample_factor=resample_factor, additional_windows=1000)
+# run_calculations(dataset=dataset, test_window_sizes=[2, 20], resample_factor=resample_factor, additional_windows=1000)
 
 """3. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
 # run_dtw_alignments(dataset=dataset, resample_factor=resample_factor)

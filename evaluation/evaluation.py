@@ -185,27 +185,33 @@ def precision_evaluation(dataset: Dataset, resample_factor: int, methods: List[s
                   str(test_window_size) + " saved at: " + str(path))
 
 
-def run_optimization_evaluation(dataset: Dataset, resample_factor: int):
+def run_optimization_evaluation(dataset: Dataset, resample_factor: int, k_list: List[int] = None):
     """
     Run complete optimizations evaluation, Evaluation of: rank-methods, classes, sensors, windows
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param k_list: Specify k-parameters
     """
+    # Specify k parameters
+    if k_list is None:
+        k_list = [1, 3, 5]
+
     # Get best configurations
     best_configurations = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor)
 
     # Evaluation of rank-method
-    run_rank_method_evaluation(dataset=dataset, resample_factor=resample_factor)
+    run_rank_method_evaluation(dataset=dataset, resample_factor=resample_factor, k_list=k_list)
 
     # Evaluation of classes
     run_class_evaluation(dataset=dataset, resample_factor=resample_factor,
-                         rank_method=best_configurations["rank_method"])
+                         rank_method=best_configurations["rank_method"], k_list=k_list)
 
     # Evaluation of sensor-combinations
     run_sensor_evaluation(dataset=dataset, resample_factor=resample_factor,
-                          rank_method=best_configurations["rank_method"], average_method=best_configurations["class"])
+                          rank_method=best_configurations["rank_method"], average_method=best_configurations["class"],
+                          k_list=k_list)
 
     # Evaluation of windows
     run_window_evaluation(dataset=dataset, resample_factor=resample_factor,
                           rank_method=best_configurations["rank_method"], average_method=best_configurations["class"],
-                          sensor_combination=best_configurations["sensor"])
+                          sensor_combination=best_configurations["sensor"], k_list=k_list)

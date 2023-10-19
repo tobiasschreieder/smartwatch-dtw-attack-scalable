@@ -10,6 +10,7 @@ from typing import List, Dict, Union
 import os
 import statistics
 import random
+import json
 
 
 cfg = Config.get()
@@ -55,60 +56,92 @@ def calculate_sensor_precisions(dataset: Dataset, resample_factor: int, rank_met
     sensor_combinations = dataset.get_sensor_combinations()  # Get all sensor-combinations
     classes = dataset.get_classes()  # Get all classes
     test_window_sizes = get_windows()  # Get all test-window-sizes
-    if k_list is None:
-        k_list = [1, 3, 5]  # List with all k for precision@k that should be considered
+
+    # List with all k for precision@k that should be considered
+    complete_k_list = [i for i in range(1, len(dataset.get_subject_list()) + 1)]
     class_distributions = get_class_distribution(dataset=dataset)  # Get class distributions
 
     if subject_ids is None:
         subject_ids = dataset.get_subject_list()
 
-    window_results_dict = dict()
-    for test_window_size in test_window_sizes:
-        results_class = dict()
-        for k in k_list:
-            results_class.setdefault(k, dict())
-            for method in classes:
-                # Calculate realistic ranks with specified rank-method
-                realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset,
-                                                                        resample_factor=resample_factor,
-                                                                        rank_method=rank_method,
-                                                                        combinations=sensor_combinations,
-                                                                        method=method,
-                                                                        test_window_size=test_window_size,
-                                                                        subject_ids=subject_ids)
-                # Calculate precision values with rank-method
-                precision_comb = calculate_precision_combinations(dataset=dataset,
-                                                                  realistic_ranks_comb=realistic_ranks_comb, k=k)
+    # Specify paths
+    data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
+    evaluations_path = os.path.join(resample_path, "evaluations")  # add /evaluations to path
+    results_path = os.path.join(evaluations_path, "results")  # add /results to path
+    os.makedirs(results_path, exist_ok=True)
+    path_string = ("SW-DTW_sensor-results_" + dataset.get_dataset_name() + "_" + str(resample_factor) + ".json")
 
-                # Save results in dictionary
-                results_class[k].setdefault(method, precision_comb)
+    # Try to load existing results
+    try:
+        f = open(os.path.join(results_path, path_string), "r")
+        results = json.loads(f.read())
+        results = {int(k): v for k, v in results.items()}
 
-        window_results_dict.setdefault(test_window_size, results_class)
+    # Calculate results if not existing
+    except FileNotFoundError:
+        window_results_dict = dict()
+        for test_window_size in test_window_sizes:
+            results_class = dict()
+            for k in complete_k_list:
+                results_class.setdefault(k, dict())
+                for method in classes:
+                    # Calculate realistic ranks with specified rank-method
+                    realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset,
+                                                                            resample_factor=resample_factor,
+                                                                            rank_method=rank_method,
+                                                                            combinations=sensor_combinations,
+                                                                            method=method,
+                                                                            test_window_size=test_window_size,
+                                                                            subject_ids=subject_ids)
+                    # Calculate precision values with rank-method
+                    precision_comb = calculate_precision_combinations(dataset=dataset,
+                                                                      realistic_ranks_comb=realistic_ranks_comb, k=k)
 
-    # Calculate mean over test-windows and classes
-    results = dict()
-    for sensor in sensor_combinations:
-        sensor = list_to_string(input_list=sensor)
-        for k in k_list:
-            results.setdefault(k, dict())
-            precision_k_list = list()
-            for test_window_size in window_results_dict:
-                precision_class_list = list()
+                    # Save results in dictionary
+                    results_class[k].setdefault(method, precision_comb)
 
-                # averaging method "mean" -> unweighted mean
-                if average_method == "mean":
-                    for method in classes:
-                        precision_class_list.append(window_results_dict[test_window_size][k][method][sensor])
-                    precision_k_list.append(statistics.mean(precision_class_list))
+            window_results_dict.setdefault(test_window_size, results_class)
 
-                # averaging method "weighted mean" -> weighted mean
-                else:
-                    for method in classes:
-                        precision_class_list.append(window_results_dict[test_window_size][k][method][sensor] *
-                                                    class_distributions[method])
-                    precision_k_list.append(sum(precision_class_list))
+        # Calculate mean over test-windows and classes
+        results = dict()
+        for sensor in sensor_combinations:
+            sensor = list_to_string(input_list=sensor)
+            for k in complete_k_list:
+                results.setdefault(k, dict())
+                precision_k_list = list()
+                for test_window_size in window_results_dict:
+                    precision_class_list = list()
 
-            results[k].setdefault(sensor, round(statistics.mean(precision_k_list), 3))
+                    # averaging method "mean" -> unweighted mean
+                    if average_method == "mean":
+                        for method in classes:
+                            precision_class_list.append(window_results_dict[test_window_size][k][method][sensor])
+                        precision_k_list.append(statistics.mean(precision_class_list))
+
+                    # averaging method "weighted mean" -> weighted mean
+                    else:
+                        for method in classes:
+                            precision_class_list.append(window_results_dict[test_window_size][k][method][sensor] *
+                                                        class_distributions[method])
+                        precision_k_list.append(sum(precision_class_list))
+
+                results[k].setdefault(sensor, round(statistics.mean(precision_k_list), 3))
+
+        # Save interim results as JSON-File
+        with open(os.path.join(results_path, path_string), "w", encoding="utf-8") as outfile:
+            json.dump(results, outfile)
+
+        print("SW-DTW_sensor-results.json saved at: " + str(os.path.join(resample_path, path_string)))
+
+    results = {int(k): v for k, v in results.items()}
+
+    reduced_results = dict()
+    if k_list is not None:
+        for k in results:
+            if k in k_list:
+                reduced_results.setdefault(k, results[k])
+        results = reduced_results
 
     return results
 
@@ -187,16 +220,21 @@ def get_best_sensor_configuration(res: Dict[int, Dict[str, float]], printable_ve
 
 
 def run_sensor_evaluation(dataset: Dataset, resample_factor: int, rank_method: str = "score",
-                          average_method: str = "weighted-mean"):
+                          average_method: str = "weighted-mean", k_list: List[int] = None):
     """
     Run and save evaluation for sensor-combinations
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param rank_method: Specify rank-method "score" or "rank" (use best performing method)
     :param average_method: Specify averaging-method "mean" or "weighted-mean" (use best performing method)
+    :param k_list: Specify k-parameters
     """
+    # Specify k-parameters
+    if k_list is None:
+        k_list = [1, 3, 5]
+
     results = calculate_sensor_precisions(dataset=dataset, resample_factor=resample_factor, rank_method=rank_method,
-                                          average_method=average_method)
+                                          average_method=average_method, k_list=k_list)
     best_sensors = get_best_sensor_configuration(res=results, printable_version=True)
     best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor,
                                                     rank_method=rank_method, average_method=average_method)

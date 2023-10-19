@@ -13,7 +13,7 @@ cfg = Config.get()
 
 
 WINDOWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 50, 100, 500, 1000]  # All calculated window-sizes
-WINDOWS = [1, 2, 5, 10, 20, 30, 50, 100, 500]
+WINDOWS = [2, 20]
 
 
 def get_windows() -> List[int]:

@@ -19,34 +19,40 @@ import json
 cfg = Config.get()
 
 
-def calculate_best_configurations(dataset: Dataset, resample_factor: int) \
+def calculate_best_configurations(dataset: Dataset, resample_factor: int, k_list: List[int] = None) \
         -> Dict[str, Union[str, int, List[List[str]]]]:
     """
     Calculate the best configurations for rank-method, classes, sensors and windows
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param k_list: Specify k-parameters
     :return: Dictionary with best configurations
     """
+    # Specify k-parameters
+    if k_list is None:
+        k_list = [1, 3, 5]
+
     # Best rank-method
-    results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor)
+    results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor, k_list=k_list)
     best_rank_method = get_best_rank_method_configuration(res=results)
 
     # Best class
     average_results, weighted_average_results = calculate_average_class_precisions(dataset=dataset,
                                                                                    resample_factor=resample_factor,
-                                                                                   rank_method=best_rank_method)
+                                                                                   rank_method=best_rank_method,
+                                                                                   k_list=k_list)
     best_class_method = get_best_class_configuration(average_res=average_results,
                                                      weighted_average_res=weighted_average_results)
 
     # Best sensors
     results = calculate_sensor_precisions(dataset=dataset, resample_factor=resample_factor,
-                                          rank_method=best_rank_method, average_method=best_class_method)
+                                          rank_method=best_rank_method, average_method=best_class_method, k_list=k_list)
     best_sensors = get_best_sensor_configuration(res=results)
 
     # Best window
     results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor,
                                           rank_method=best_rank_method, average_method=best_class_method,
-                                          sensor_combination=best_sensors)
+                                          sensor_combination=best_sensors, k_list=k_list)
     best_window = get_best_window_configuration(res=results)
 
     best_configurations = {"rank_method": best_rank_method, "class": best_class_method, "sensor": best_sensors,

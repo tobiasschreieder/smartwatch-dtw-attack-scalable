@@ -350,7 +350,7 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, ran
         method_path = os.path.join(precision_path, method)
         window_path = os.path.join(method_path, "window-size=" + str(test_window_size))
         os.makedirs(window_path, exist_ok=True)
-        path_string = ("SW-DTW_rank-method-results_" + str(method) + "_" + str(test_window_size) + ".json")
+        path_string = ("SW-DTW_realistic-ranks-combinations_" + str(method) + "_" + str(test_window_size) + ".json")
 
         # Try to load existing results
         try:

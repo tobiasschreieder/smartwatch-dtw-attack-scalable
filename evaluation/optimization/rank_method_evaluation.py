@@ -28,90 +28,121 @@ def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, sub
     sensor_combinations = dataset.get_sensor_combinations()  # Get all sensor-combinations
     classes = dataset.get_classes()  # Get all classes
     test_window_sizes = get_windows()  # Get all test-window-sizes
-    if k_list is None:
-        k_list = [1, 3, 5]  # List with all k for precision@k that should be considered
+
+    # List with all k for precision@k that should be considered
+    complete_k_list = [i for i in range(1, len(dataset.get_subject_list()) + 1)]
 
     if subject_ids is None:
         subject_ids = dataset.get_subject_list()
 
-    class_results_dict = dict()
-    for method in classes:
-        window_results_dict = dict()
-        for test_window_size in test_window_sizes:
-            results_sensor = dict()
-            for k in k_list:
-                # Calculate realistic ranks with rank method "rank"
-                realistic_ranks_comb_rank = get_realistic_ranks_combinations(dataset=dataset,
-                                                                             resample_factor=resample_factor,
-                                                                             rank_method="rank",
-                                                                             combinations=sensor_combinations,
-                                                                             method=method,
-                                                                             test_window_size=test_window_size,
-                                                                             subject_ids=subject_ids)
-                # Calculate precision values with rank method "rank"
-                precision_comb_rank = calculate_precision_combinations(dataset=dataset,
-                                                                       realistic_ranks_comb=
-                                                                       realistic_ranks_comb_rank,
-                                                                       k=k)
+    # Specify paths
+    data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
+    evaluations_path = os.path.join(resample_path, "evaluations")  # add /evaluations to path
+    results_path = os.path.join(evaluations_path, "results")  # add /results to path
+    os.makedirs(results_path, exist_ok=True)
+    path_string = ("SW-DTW_rank-method-results_" + dataset.get_dataset_name() + "_" + str(resample_factor) + ".json")
 
-                # Calculate realistic ranks with rank method "score"
-                realistic_ranks_comb_score = get_realistic_ranks_combinations(dataset=dataset,
-                                                                              resample_factor=resample_factor,
-                                                                              rank_method="score",
-                                                                              combinations=sensor_combinations,
-                                                                              method=method,
-                                                                              test_window_size=test_window_size,
-                                                                              subject_ids=subject_ids)
-                # Calculate precision values with rank method "score"
-                precision_comb_score = calculate_precision_combinations(dataset=dataset,
-                                                                        realistic_ranks_comb=
-                                                                        realistic_ranks_comb_score,
-                                                                        k=k)
+    # Try to load existing results
+    try:
+        f = open(os.path.join(results_path, path_string), "r")
+        results = json.loads(f.read())
 
-                sensor_combined_precision_rank = statistics.mean(precision_comb_rank.values())
-                sensor_combined_precision_score = statistics.mean(precision_comb_score.values())
+    # Calculate results if not existing
+    except FileNotFoundError:
+        class_results_dict = dict()
+        for method in classes:
+            window_results_dict = dict()
+            for test_window_size in test_window_sizes:
+                results_sensor = dict()
+                for k in complete_k_list:
+                    # Calculate realistic ranks with rank method "rank"
+                    realistic_ranks_comb_rank = get_realistic_ranks_combinations(dataset=dataset,
+                                                                                 resample_factor=resample_factor,
+                                                                                 rank_method="rank",
+                                                                                 combinations=sensor_combinations,
+                                                                                 method=method,
+                                                                                 test_window_size=test_window_size,
+                                                                                 subject_ids=subject_ids)
+                    # Calculate precision values with rank method "rank"
+                    precision_comb_rank = calculate_precision_combinations(dataset=dataset,
+                                                                           realistic_ranks_comb=
+                                                                           realistic_ranks_comb_rank,
+                                                                           k=k)
 
-                # Calculate mean over results from methods "rank" and "score"
-                sensor_combined_precision_mean = statistics.mean([sensor_combined_precision_score,
-                                                                 sensor_combined_precision_rank])
-                # Save results in dictionary
-                results_sensor.setdefault(k, {"rank": sensor_combined_precision_rank,
-                                              "score": sensor_combined_precision_score,
-                                              "mean": sensor_combined_precision_mean})
+                    # Calculate realistic ranks with rank method "score"
+                    realistic_ranks_comb_score = get_realistic_ranks_combinations(dataset=dataset,
+                                                                                  resample_factor=resample_factor,
+                                                                                  rank_method="score",
+                                                                                  combinations=sensor_combinations,
+                                                                                  method=method,
+                                                                                  test_window_size=test_window_size,
+                                                                                  subject_ids=subject_ids)
+                    # Calculate precision values with rank method "score"
+                    precision_comb_score = calculate_precision_combinations(dataset=dataset,
+                                                                            realistic_ranks_comb=
+                                                                            realistic_ranks_comb_score,
+                                                                            k=k)
 
-            window_results_dict.setdefault(test_window_size, results_sensor)
+                    sensor_combined_precision_rank = statistics.mean(precision_comb_rank.values())
+                    sensor_combined_precision_score = statistics.mean(precision_comb_score.values())
 
-        # Calculate mean precisions over all test-window-sizes
-        results_windows = dict()
-        for k in k_list:
+                    # Calculate mean over results from methods "rank" and "score"
+                    sensor_combined_precision_mean = statistics.mean([sensor_combined_precision_score,
+                                                                     sensor_combined_precision_rank])
+                    # Save results in dictionary
+                    results_sensor.setdefault(k, {"rank": sensor_combined_precision_rank,
+                                                  "score": sensor_combined_precision_score,
+                                                  "mean": sensor_combined_precision_mean})
+
+                window_results_dict.setdefault(test_window_size, results_sensor)
+
+            # Calculate mean precisions over all test-window-sizes
+            results_windows = dict()
+            for k in complete_k_list:
+                rank_precisions = list()
+                score_precisions = list()
+                mean_precisions = list()
+                for result in window_results_dict.values():
+                    rank_precisions.append(result[k]["rank"])
+                    score_precisions.append(result[k]["score"])
+                    mean_precisions.append(result[k]["mean"])
+
+                results_windows.setdefault(k, {"rank": statistics.mean(rank_precisions),
+                                               "score": statistics.mean(score_precisions),
+                                               "mean": statistics.mean(mean_precisions)})
+
+            class_results_dict.setdefault(method, results_windows)
+
+        # Calculate mean precisions over all classes
+        results = dict()
+        for k in complete_k_list:
             rank_precisions = list()
             score_precisions = list()
             mean_precisions = list()
-            for result in window_results_dict.values():
+            for result in class_results_dict.values():
                 rank_precisions.append(result[k]["rank"])
                 score_precisions.append(result[k]["score"])
                 mean_precisions.append(result[k]["mean"])
 
-            results_windows.setdefault(k, {"rank": statistics.mean(rank_precisions),
-                                           "score": statistics.mean(score_precisions),
-                                           "mean": statistics.mean(mean_precisions)})
+            results.setdefault(k, {"rank": round(statistics.mean(rank_precisions), 3),
+                                   "score": round(statistics.mean(score_precisions), 3),
+                                   "mean": round(statistics.mean(mean_precisions), 3)})
 
-        class_results_dict.setdefault(method, results_windows)
+        # Save interim results as JSON-File
+        with open(os.path.join(results_path, path_string), "w", encoding="utf-8") as outfile:
+            json.dump(results, outfile)
 
-    # Calculate mean precisions over all classes
-    results = dict()
-    for k in k_list:
-        rank_precisions = list()
-        score_precisions = list()
-        mean_precisions = list()
-        for result in class_results_dict.values():
-            rank_precisions.append(result[k]["rank"])
-            score_precisions.append(result[k]["score"])
-            mean_precisions.append(result[k]["mean"])
+        print("SW-DTW_rank-method-results.json saved at: " + str(os.path.join(resample_path, path_string)))
 
-        results.setdefault(k, {"rank": round(statistics.mean(rank_precisions), 3),
-                               "score": round(statistics.mean(score_precisions), 3),
-                               "mean": round(statistics.mean(mean_precisions), 3)})
+    results = {int(k): v for k, v in results.items()}
+
+    reduced_results = dict()
+    if k_list is not None:
+        for k in results:
+            if k in k_list:
+                reduced_results.setdefault(k, results[k])
+        results = reduced_results
 
     return results
 
@@ -164,13 +195,18 @@ def get_best_rank_method_configuration(res: Dict[int, Dict[str, float]]) -> str:
     return best_rank_method
 
 
-def run_rank_method_evaluation(dataset: Dataset, resample_factor: int):
+def run_rank_method_evaluation(dataset: Dataset, resample_factor: int, k_list: List[int] = None):
     """
     Run and save evaluation for rank-methods
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param k_list: Specify k-parameters
     """
-    results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor)
+    # Specify k-parameters
+    if k_list is None:
+        k_list = [1, 3, 5]
+
+    results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor, k_list=k_list)
     best_rank_method = get_best_rank_method_configuration(res=results)
     best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor)
     text = [create_md_precision_rank_method(results=results, best_rank_method=best_rank_method,
