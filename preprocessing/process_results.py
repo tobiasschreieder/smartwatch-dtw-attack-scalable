@@ -24,8 +24,8 @@ def load_results(dataset: Dataset, resample_factor: int, subject_id: int, method
     """
     subject_ids = dataset.get_subject_list()
     subject_ids_string = list()
-    for subject_id in subject_ids:
-        subject_ids_string.append(str(subject_id))
+    for subject in subject_ids:
+        subject_ids_string.append(str(subject))
 
     reduced_results = dict()
     try:

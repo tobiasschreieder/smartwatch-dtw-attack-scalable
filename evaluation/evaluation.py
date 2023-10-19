@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 cfg = Config.get()
 
 
-def run_calculate_max_precision(dataset: Dataset, resample_factor: int, k_list: List[int], methods: List = None,
+def run_calculate_max_precision(dataset: Dataset, resample_factor: int, k_list: List[int] = None, methods: List = None,
                                 test_window_sizes: List = None, step_width: float = 0.1):
     """
     Run calculations of maximum-precisions for specified k's, methods and test-window-sizes
@@ -34,6 +34,8 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, k_list: 
         methods = dataset.get_classes()
     if test_window_sizes is None:
         test_window_sizes = get_windows()
+    if k_list is None:
+        k_list = [i for i in range(len(dataset.get_subject_list()) + 1)]
 
     for k in k_list:
         for method in methods:
