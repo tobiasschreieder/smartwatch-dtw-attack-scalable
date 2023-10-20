@@ -11,6 +11,8 @@ from evaluation.optimization.overall_evaluation import run_overall_evaluation
 from preprocessing.datasets.load_wesad import Wesad
 from preprocessing.datasets.load_gan import WesadGan
 
+import time
+
 
 """
 Example Calculations
@@ -20,6 +22,8 @@ Example Calculations
 dataset = Wesad()
 resample_factor = 1000
 
+
+start = time.perf_counter()
 
 """1. Plot exploratory data analysis to /out/eda"""
 # plot_subject_data(dataset=dataset, resample_factor=resample_factor)
@@ -58,8 +62,11 @@ to /out/subject-plots"""
 # run_optimization_evaluation(dataset=dataset, resample_factor=resample_factor)
 
 """12. Calculate maximum precisions, save precision@k values as json file"""
-# run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor)
+# run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor, n_jobs=-1)
 
 """13. Overall evaluation with (DTW-results, maximum results, random guess results), save precision@k values as 
 MD-table"""
 # run_overall_evaluation(dataset=dataset, resample_factor=resample_factor, save_weightings=True)
+
+end = time.perf_counter()
+print("Runtime: " + str(end - start))

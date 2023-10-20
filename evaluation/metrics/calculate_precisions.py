@@ -73,14 +73,36 @@ def calculate_max_precision(dataset: Dataset, resample_factor: int, k: int, step
     :param test_window_size: Specify test-window-size of alignments
     :return: Maximum-precision
     """
-    weight_precisions = list()
+    def run_rank_precision_calculation(test_weights: Dict[str, float]):
+        """
+        Run Rank and Precision calculation for given weights
+        :param test_weights: Specify weights
+        :return: Calculated precision results
+        """
+        realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset,
+                                                                resample_factor=resample_factor,
+                                                                rank_method="max",
+                                                                combinations=sensor_combinations,
+                                                                method=method,
+                                                                test_window_size=test_window_size,
+                                                                weights=test_weights)
+        precision_combinations = calculate_precision_combinations(dataset=dataset,
+                                                                  realistic_ranks_comb
+                                                                  =realistic_ranks_comb,
+                                                                  k=k)
+
+        results = list()
+        for c, p in precision_combinations.items():
+            results.append({"precision": p, "weights": test_weights})
+
+        return results
+
+    weights_list = list()
+    sensor_combinations = [["bvp", "eda", "acc", "temp"]]
     steps = int(100 / (step_width * 100))
 
-    print("Calculation of maximum precision@" + str(k) + " for method = '" + str(method) + "' with test-window-size = '"
-          + str(test_window_size) + "'")
     for step_bvp in range(0, steps):
         weight_bvp = step_bvp / steps
-
         for step_eda in range(0, steps):
             weight_eda = step_eda / steps
             for step_acc in range(0, steps):
@@ -89,23 +111,12 @@ def calculate_max_precision(dataset: Dataset, resample_factor: int, k: int, step
                     weight_temp = step_temp / steps
 
                     if weight_bvp + weight_eda + weight_acc + weight_temp == 1:
-                        sensor_combinations = [["bvp", "eda", "acc", "temp"]]
                         weights = {"bvp": weight_bvp, "eda": weight_eda, "acc": weight_acc, "temp": weight_temp}
+                        weights_list.append(weights)
 
-                        realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset,
-                                                                                resample_factor=resample_factor,
-                                                                                rank_method="max",
-                                                                                combinations=sensor_combinations,
-                                                                                method=method,
-                                                                                test_window_size=test_window_size,
-                                                                                weights=weights)
-                        precision_combinations = calculate_precision_combinations(dataset=dataset,
-                                                                                  realistic_ranks_comb
-                                                                                  =realistic_ranks_comb,
-                                                                                  k=k)
-
-                        for c, p in precision_combinations.items():
-                            weight_precisions.append({"precision": p, "weights": weights})
+    weight_precisions = list()
+    for weights in weights_list:
+        weight_precisions.append(run_rank_precision_calculation(test_weights=weights)[0])
 
     max_precision = 0
     for precision in weight_precisions:

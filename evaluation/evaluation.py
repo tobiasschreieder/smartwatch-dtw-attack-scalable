@@ -11,6 +11,7 @@ from preprocessing.datasets.dataset import Dataset
 from preprocessing.process_results import load_results
 from config import Config
 
+from joblib import Parallel, delayed
 from typing import List
 import os
 import matplotlib.pyplot as plt
@@ -19,17 +20,26 @@ import matplotlib.pyplot as plt
 cfg = Config.get()
 
 
-def run_calculate_max_precision(dataset: Dataset, resample_factor: int, k_list: List[int] = None, methods: List = None,
-                                test_window_sizes: List = None, step_width: float = 0.1):
+def run_calculate_max_precision(dataset: Dataset, resample_factor: int, n_jobs: int = -1, k_list: List[int] = None,
+                                methods: List = None, test_window_sizes: List = None, step_width: float = 0.1):
     """
     Run calculations of maximum-precisions for specified k's, methods and test-window-sizes
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param n_jobs: Number of processes to use (parallelization)
     :param k_list: List with all k parameter
     :param methods: List with all methods ("baseline", "amusement", "stress")
     :param test_window_sizes: List with all test-window-sizes
     :param step_width: Specify step-width for weights
     """
+    def run_calculation(k: int):
+        """
+        Run parallel calculation of max-precision
+        :param k: Specify k-parameter
+        """
+        calculate_max_precision(dataset=dataset, resample_factor=resample_factor, k=k, step_width=step_width,
+                                method=method, test_window_size=test_window_size)
+
     if methods is None:
         methods = dataset.get_classes()
     if test_window_sizes is None:
@@ -37,11 +47,12 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, k_list: 
     if k_list is None:
         k_list = [i for i in range(len(dataset.get_subject_list()) + 1)]
 
-    for k in k_list:
+    for test_window_size in test_window_sizes:
         for method in methods:
-            for test_window_size in test_window_sizes:
-                calculate_max_precision(dataset=dataset, resample_factor=resample_factor, k=k, step_width=step_width,
-                                        method=method, test_window_size=test_window_size)
+
+            # Parallelization
+            with Parallel(n_jobs=n_jobs, verbose=2) as parallel:
+                parallel(delayed(run_calculation)(k=k) for k in k_list)
 
 
 def plot_realistic_ranks(dataset: Dataset, resample_factor: int, path: os.path, method: str, test_window_size: int):

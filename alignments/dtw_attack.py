@@ -1,6 +1,7 @@
 from preprocessing.datasets.dataset import Dataset
 from config import Config
 
+from joblib import Parallel, delayed
 from typing import Dict, Tuple, List
 import pandas as pd
 from dtaidistance import dtw
@@ -196,16 +197,47 @@ def calculate_alignment(dataset: Dataset, subject_id: int, method: str, test_win
 
 
 def run_calculations(dataset: Dataset, test_window_sizes: List[int], resample_factor: int = 1,
-                     additional_windows: int = 1000, methods: List[str] = None, subject_ids: List[int] = None):
+                     additional_windows: int = 1000, n_jobs: int = -1, methods: List[str] = None, subject_ids: List[int] = None):
     """
     Run DTW-calculations with all given parameters and save results as json
     :param dataset: Specify dataset, which should be used
     :param test_window_sizes: List with all test windows that should be used (int)
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param additional_windows: Specify amount of additional windows to be removed around test-window
+    :param n_jobs: Number of processes to use (parallelization)
     :param methods:  List with all method that should be used -> "baseline" / "amusement" / "stress" (str)
     :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
     """
+    def parallel_calculation(current_subject_id):
+        results_standard = calculate_alignment(dataset=dataset, subject_id=current_subject_id, method=method,
+                                               test_window_size=test_window_size,
+                                               additional_windows=additional_windows,
+                                               resample_factor=resample_factor)
+
+        # Save results as json
+        try:
+            path = os.path.join(cfg.out_dir, dataset.name)  # add /dataset-name to path
+            path = os.path.join(path, "resample-factor=" + str(resample_factor))  # add /rs-factor= to path
+            path = os.path.join(path, "alignments")  # add /alignments to path
+            path = os.path.join(path, str(method))  # add /method to path
+            path = os.path.join(path, "window-size=" + str(test_window_size))  # add /test=X to path
+            os.makedirs(path, exist_ok=True)
+
+            path_string_standard = "SW-DTW_results_standard_" + str(method) + "_" + str(
+                test_window_size) + "_S" + str(current_subject_id) + ".json"
+
+            with open(os.path.join(path, path_string_standard), "w", encoding="utf-8") as outfile:
+                json.dump(results_standard, outfile)
+
+            print("SW-DTW results saved at: " + str(path))
+
+        except FileNotFoundError:
+            with open("SW-DTW_results_standard_" + str(method) + "_" + str(test_window_size) + "_S" +
+                      str(current_subject_id) + ".json", "w", encoding="utf-8") as outfile:
+                json.dump(results_standard, outfile)
+
+            print("FileNotFoundError: results saved at working dir")
+
     if subject_ids is None:
         subject_ids = dataset.get_subject_list()
     if methods is None:
@@ -221,38 +253,9 @@ def run_calculations(dataset: Dataset, test_window_sizes: List[int], resample_fa
             for method in methods:
                 print("--Current method: " + str(method))
 
-                # Run DTW Calculations
-                for subject_id in subject_ids:
-                    print("---Current id: " + str(subject_id))
-
-                    results_standard = calculate_alignment(dataset=dataset, subject_id=subject_id, method=method,
-                                                           test_window_size=test_window_size,
-                                                           additional_windows=additional_windows,
-                                                           resample_factor=resample_factor)
-
-                    # Save results as json
-                    try:
-                        path = os.path.join(cfg.out_dir, dataset.name)  # add /dataset-name to path
-                        path = os.path.join(path, "resample-factor=" + str(resample_factor))  # add /rs-factor= to path
-                        path = os.path.join(path, "alignments")  # add /alignments to path
-                        path = os.path.join(path, str(method))  # add /method to path
-                        path = os.path.join(path, "window-size=" + str(test_window_size))  # add /test=X to path
-                        os.makedirs(path, exist_ok=True)
-
-                        path_string_standard = "SW-DTW_results_standard_" + str(method) + "_" + str(
-                            test_window_size) + "_S" + str(subject_id) + ".json"
-
-                        with open(os.path.join(path, path_string_standard), "w", encoding="utf-8") as outfile:
-                            json.dump(results_standard, outfile)
-
-                        print("SW-DTW results saved at: " + str(path))
-
-                    except FileNotFoundError:
-                        with open("SW-DTW_results_standard_" + str(method) + "_" + str(test_window_size) + "_S" +
-                                  str(subject_id) + ".json", "w", encoding="utf-8") as outfile:
-                            json.dump(results_standard, outfile)
-
-                        print("FileNotFoundError: results saved at working dir")
+                # Parallelization
+                with Parallel(n_jobs=n_jobs, verbose=2) as parallel:
+                    parallel(delayed(parallel_calculation)(current_subject_id=subject_id) for subject_id in subject_ids)
 
             end = time.perf_counter()
 
