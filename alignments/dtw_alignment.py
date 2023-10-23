@@ -2,6 +2,7 @@ from preprocessing.datasets.load_wesad import Dataset
 from config import Config
 
 from dtaidistance import dtw
+from joblib import Parallel, delayed
 import pandas as pd
 from typing import Dict, List
 import json
@@ -46,7 +47,6 @@ def calculate_complete_subject_alignment(dataset: Dataset, subject_id: int, resa
     subject_list = dataset.get_subject_list()
 
     for subject in subject_list:
-        print("--Current subject: " + str(subject))
         subject_data_2 = create_full_subject_data(dataset=dataset, resample_factor=resample_factor, subject_id=subject)
         results_standard.setdefault(subject, dict())
 
@@ -62,13 +62,38 @@ def calculate_complete_subject_alignment(dataset: Dataset, subject_id: int, resa
     return results_standard
 
 
-def run_dtw_alignments(dataset: Dataset, resample_factor: int, subject_ids: List[int] = None):
+def run_dtw_alignments(dataset: Dataset, resample_factor: int, n_jobs: int = -1, subject_ids: List[int] = None):
     """
     Run DTW-Calculations with all given parameters and save results as json (no train-test split)
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param n_jobs: Number of processes to use (parallelization)
     :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
     """
+    def parallel_calculation(current_subject_id: int):
+        """
+        Run parallel alignment calculations
+        :param current_subject_id: Specify subject-id
+        """
+        results_standard = calculate_complete_subject_alignment(dataset=dataset, subject_id=current_subject_id,
+                                                                resample_factor=resample_factor)
+
+        # Save results as json
+        try:
+            path_string_standard = "SW-DTW_results_standard_" + "complete_S" + str(current_subject_id) + ".json"
+
+            with open(os.path.join(complete_path, path_string_standard), "w", encoding="utf-8") as outfile:
+                json.dump(results_standard, outfile)
+
+            print("SW-DTW results saved at: " + str(os.path.join(complete_path, path_string_standard)))
+
+        except FileNotFoundError:
+            with open("/SW-DTW_results_standard_" + "complete_S" + str(current_subject_id) + ".json", "w",
+                      encoding="utf-8") as outfile:
+                json.dump(results_standard, outfile)
+
+            print("FileNotFoundError: results saved at working dir")
+
     if subject_ids is None:
         subject_ids = dataset.get_subject_list()
 
@@ -79,24 +104,8 @@ def run_dtw_alignments(dataset: Dataset, resample_factor: int, subject_ids: List
     os.makedirs(complete_path, exist_ok=True)
 
     # Run DTW Calculations
-    for subject_id in subject_ids:
-        print("-Current id: " + str(subject_id))
+    # Parallelization
+    with Parallel(n_jobs=n_jobs) as parallel:
+        parallel(delayed(parallel_calculation)(current_subject_id=subject_id) for subject_id in subject_ids)
 
-        results_standard = calculate_complete_subject_alignment(dataset=dataset, subject_id=subject_id,
-                                                                resample_factor=resample_factor)
 
-        # Save results as json
-        try:
-            path_string_standard = "SW-DTW_results_standard_" + "complete_S" + str(subject_id) + ".json"
-
-            with open(os.path.join(complete_path, path_string_standard), "w", encoding="utf-8") as outfile:
-                json.dump(results_standard, outfile)
-
-            print("SW-DTW results saved at: " + str(complete_path))
-
-        except FileNotFoundError:
-            with open("/SW-DTW_results_standard_" + "complete_S" + str(subject_id) + ".json", "w", encoding="utf-8") \
-                    as outfile:
-                json.dump(results_standard, outfile)
-
-            print("FileNotFoundError: results saved at working dir")

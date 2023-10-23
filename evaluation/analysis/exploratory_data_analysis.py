@@ -3,6 +3,7 @@ from preprocessing.process_results import load_complete_alignment_results
 from config import Config
 
 import os
+import time
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -22,6 +23,9 @@ def plot_subject_data(dataset: Dataset, resample_factor: int):
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
     eda_path = os.path.join(resample_path, "eda")  # add /eda to path
     os.makedirs(eda_path, exist_ok=True)
+
+    print("Plotting subject-data! PNG-File saved at out/" + str(dataset.get_dataset_name()) + "/resample-factor=" +
+          str(resample_factor) + "/eda")
 
     for subject in data_dict:
         plt.plot(data_dict[subject])

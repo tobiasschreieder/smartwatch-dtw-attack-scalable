@@ -19,7 +19,7 @@ def calculate_precision(dataset: Dataset, resample_factor: int, subject_ids: Lis
     :param subject_ids: List with subject-ids
     :param k: Specify k parameter
     :param rank_method: Specify ranking method ("rank" or "score")
-    :param method: DTW-method ("baseline", "amusement", "stress")
+    :param method: DTW-method ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
     :return: precision@k value
     """

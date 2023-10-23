@@ -17,7 +17,7 @@ def load_results(dataset: Dataset, resample_factor: int, subject_id: int, method
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param subject_id: Specify subject
-    :param method: Specify method ("baseline", "amusement", "stress")
+    :param method: Specify method ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
     :param normalized_data: True if normalized results should be used
     :return: Dictionary with results

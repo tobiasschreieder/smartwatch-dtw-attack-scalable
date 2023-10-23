@@ -16,18 +16,17 @@ def main():
     resample_factor = 1000
 
     try:
-        """1. Plot exploratory data analysis to /out/eda"""
-        plot_subject_data(dataset=dataset)
-
-        """2. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
+        """1. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
         run_dtw_alignments(dataset=dataset, resample_factor=resample_factor)
 
-        """3. Plot DTW alignment subject distance heatmap and save plot to /out/eda"""
-        plot_alignment_heatmap(dataset=dataset)
+        """2. Plot DTW alignment subject distance heatmap and save plot to /out/dataset/resample-factor=x/eda"""
+        plot_alignment_heatmap(dataset=dataset, resample_factor=resample_factor)
 
-        """4. Calculate DTW-alignments and save results to /out/alignments"""
-        run_calculations(dataset=dataset, resample_factor=resample_factor, methods=["baseline", "amusement", "stress"],
-                         test_window_sizes=[1, 10, 100])
+        """3. Calculate DTW-alignments and save results to /out/dataset/resample-factor=x/alignments"""
+        run_calculations(dataset=dataset, resample_factor=resample_factor, test_window_sizes=[1, 10, 100])
+
+        """4. Plot exploratory data analysis to /out/eda"""
+        plot_subject_data(dataset=dataset, resample_factor=resample_factor)
 
         """5. Evaluate DTW-alignment results per subject; save MD-tables with distance and rank results and 
         realistic-rank-plots to /out/subject-plots"""
@@ -40,7 +39,7 @@ def main():
         run_optimization_evaluation(dataset=dataset, resample_factor=resample_factor)
 
         """8. Calculate maximum precisions, save precision@k values as json file"""
-        run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor, k_list=list(range(1, 16)))
+        run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor)
 
         """9. Overall evaluation with (DTW-results, maximum results, random guess results), save precision@k values as 
         MD-table"""

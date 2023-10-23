@@ -10,6 +10,7 @@ from evaluation.optimization.window_evaluation import run_window_evaluation
 from evaluation.optimization.overall_evaluation import run_overall_evaluation
 from preprocessing.datasets.load_wesad import Wesad
 from preprocessing.datasets.load_gan import WesadGan
+from preprocessing.datasets.load_combined import WesadCombined
 
 import time
 
@@ -25,17 +26,17 @@ resample_factor = 1000
 
 start = time.perf_counter()
 
-"""1. Plot exploratory data analysis to /out/eda"""
-# plot_subject_data(dataset=dataset, resample_factor=resample_factor)
-
-"""2. Calculate DTW-alignments and save results to /out/alignments"""
+"""1. Calculate DTW-alignments and save results to /out/alignments"""
 # run_calculations(dataset=dataset, test_window_sizes=[2, 20], resample_factor=resample_factor, additional_windows=1000)
 
-"""3. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
+"""2. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
 # run_dtw_alignments(dataset=dataset, resample_factor=resample_factor)
 
-"""4. Plot DTW alignment subject distance heatmap and save plot to /out/eda"""
+"""3. Plot DTW alignment subject distance heatmap and save plot to /out/eda"""
 # plot_distance_heatmap(dataset=dataset, resample_factor=resample_factor)
+
+"""4. Plot exploratory data analysis to /out/eda"""
+# plot_subject_data(dataset=dataset, resample_factor=resample_factor)
 
 """5. Evaluate DTW-alignment results per subject; save MD-tables with distance and rank results and realistic-rank-plots
 to /out/subject-plots"""
@@ -56,17 +57,17 @@ to /out/subject-plots"""
 
 """10. Evaluation of windows, save precision@k values as MD-table"""
 # run_window_evaluation(dataset=dataset, resample_factor=resample_factor, rank_method="score",
-#                       average_method="weighted-mean", sensor_combination=[["bvp", "acc", "temp"]])
+#                       average_method="weighted-mean", sensor_combination=[["bvp", "acc"]])
 
 """11. Complete optimization evaluation, save precision@k values as MD-table"""
 # run_optimization_evaluation(dataset=dataset, resample_factor=resample_factor)
 
 """12. Calculate maximum precisions, save precision@k values as json file"""
-# run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor, n_jobs=-1)
+# run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor)
 
 """13. Overall evaluation with (DTW-results, maximum results, random guess results), save precision@k values as 
 MD-table"""
 # run_overall_evaluation(dataset=dataset, resample_factor=resample_factor, save_weightings=True)
 
 end = time.perf_counter()
-print("Runtime: " + str(end - start))
+print("Runtime: " + str(round(end - start, 2)) + "s")

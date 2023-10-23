@@ -28,7 +28,7 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, n_jobs: 
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param n_jobs: Number of processes to use (parallelization)
     :param k_list: List with all k parameter
-    :param methods: List with all methods ("baseline", "amusement", "stress")
+    :param methods: List with all methods ("non-stress", "stress")
     :param test_window_sizes: List with all test-window-sizes
     :param step_width: Specify step-width for weights
     """
@@ -61,7 +61,7 @@ def plot_realistic_ranks(dataset: Dataset, resample_factor: int, path: os.path, 
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param path: Path to save boxplot
-    :param method: Specify method of results ("baseline", "amusement", "stress")
+    :param method: Specify method of results ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
     """
     real_ranks_1 = get_realistic_ranks(dataset=dataset, resample_factor=resample_factor, rank_method="rank",
@@ -85,7 +85,7 @@ def subject_evaluation(dataset: Dataset, resample_factor: int, plot_ranks: bool 
     Create distance and rank-table for each subject
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
-    :param methods: List with methods ("baseline", "amusement", "stress")
+    :param methods: List with methods ("non-stress", "stress")
     :param plot_ranks: If True: realistic ranks will be plotted and saved
     :param test_window_sizes: List with test-window-sizes
     :param subject_list: Specify subject-ids if None: all subjects are used
@@ -158,7 +158,7 @@ def precision_evaluation(dataset: Dataset, resample_factor: int, methods: List[s
     Evaluate DTW alignments with precision@k
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
-    :param methods: List with methods ("baseline", "amusement", "stress")
+    :param methods: List with methods ("non-stress", "stress")
     :param test_window_sizes: List with test-window_sizes
     :param k_list: Specify k parameters in precision table; if None: all k [1 - len(subjects)] are shown
     """

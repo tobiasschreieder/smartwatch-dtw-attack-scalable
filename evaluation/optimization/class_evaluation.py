@@ -24,27 +24,23 @@ def get_class_distribution(dataset: Dataset) -> Dict[str, float]:
     """
     data_dict = dataset.load_dataset()
 
-    amusement_proportions = list()
-    baseline_proportions = list()
+    non_stress_proportions = list()
     stress_proportions = list()
 
     for subject in data_dict:
         data = pd.DataFrame(data_dict[subject]["label"])
         subject_length = data.shape[0]
 
-        amusement_length = data[data.label == 0.5].shape[0]
-        baseline_length = data[data.label == 0].shape[0]
+        non_stress_length = data[data.label == 0].shape[0]
         stress_length = data[data.label == 1].shape[0]
 
-        amusement_proportions.append(round(amusement_length / subject_length, 2))
-        baseline_proportions.append(round(baseline_length / subject_length, 2))
+        non_stress_proportions.append(round(non_stress_length / subject_length, 2))
         stress_proportions.append(round(stress_length / subject_length, 2))
 
-    amusement_proportion = round(statistics.mean(amusement_proportions), 2)
-    baseline_proportion = round(statistics.mean(baseline_proportions), 2)
+    non_stress_proportion = round(statistics.mean(non_stress_proportions), 2)
     stress_proportion = round(statistics.mean(stress_proportions), 2)
 
-    return {"amusement": amusement_proportion, "baseline": baseline_proportion, "stress": stress_proportion}
+    return {"non-stress": non_stress_proportion, "stress": stress_proportion}
 
 
 def calculate_class_precisions(dataset: Dataset, resample_factor: int, rank_method: str = "score",

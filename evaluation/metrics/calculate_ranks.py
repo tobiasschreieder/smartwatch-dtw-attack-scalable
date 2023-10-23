@@ -147,7 +147,7 @@ def get_realistic_ranks(dataset: Dataset, resample_factor: int, rank_method: str
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param rank_method: Specify ranking method ("rank" or "score")
-    :param method: Specify method of results ("baseline", "amusement", "stress")
+    :param method: Specify method of results ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
     :param subject_ids: List with subject-ids; if None = all subjects are used
     :return: List with sorted realistic ranks
@@ -330,7 +330,7 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, ran
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param rank_method: Choose ranking method ("rank", "score", "max")
     :param combinations: Specify sensor combinations
-    :param method: Specify DTW-method ("baseline", "amusement", "stress")
+    :param method: Specify DTW-method ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
     :param subject_ids: Specify subjects if needed; ignore if all subjects should be used
     :param weights: Specify weights

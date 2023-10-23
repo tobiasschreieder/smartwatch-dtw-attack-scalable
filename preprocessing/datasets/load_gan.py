@@ -17,7 +17,7 @@ end = 1100
 SUBJECT_LIST = [x for x in range(start, end + 1)]
 
 # All available classes
-CLASSES = ["baseline", "amusement", "stress"]
+CLASSES = ["non-stress", "stress"]
 
 # List with all sensor combinations
 SENSOR_COMBINATIONS = [["bvp"], ["eda"], ["acc"], ["temp"], ["bvp", "eda"], ["bvp", "temp"], ["bvp", "acc"],

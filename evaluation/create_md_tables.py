@@ -118,7 +118,7 @@ def create_md_precision_combinations(dataset: Dataset, resample_factor: int, ran
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param rank_method: Specify ranking-method ("rank", "score")
-    :param method: Specify method ("baseline", "amusement", "stress")
+    :param method: Specify method ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
     :param max_k: Specify maximum k for precision@k
     :param subject_ids: List with subject-ids; if None: all subjects are used
@@ -215,15 +215,14 @@ def create_md_precision_classes(rank_method: str, results: Dict[int, Dict[str, f
 
     text += "## Evaluation per Class: \n"
     text += "### Precision@k table: \n"
-    text += "| k | baseline | amusement | stress |" + "\n"
+    text += "| k | non-stress | stress |" + "\n"
     text += "|---|---|---|---|" + "\n"
 
     for k in results:
-        text += "| " + str(k) + " | " + str(results[k]["baseline"]) + " | " + str(results[k]["amusement"]) + " | " + \
-                str(results[k]["stress"]) + " |" + "\n"
+        text += "| " + str(k) + " | " + str(results[k]["non-stress"]) + " | " + str(results[k]["stress"]) + " |" + "\n"
 
-    text += "| max@k | " + "k = " + str(best_k_parameters["baseline"]) + " | " + "k = " + \
-            str(best_k_parameters["amusement"]) + " | " + "k = " + str(best_k_parameters["stress"]) + " |" + "\n"
+    text += ("| max@k | " + "k = " + str(best_k_parameters["non-stress"]) + " | " + "k = " +
+             "k = " + str(best_k_parameters["stress"]) + " |" + "\n")
 
     text += "## Overall Evaluation: \n"
     text += "### Precision@k table: \n"

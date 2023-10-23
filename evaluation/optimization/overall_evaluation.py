@@ -72,10 +72,8 @@ def get_average_max_precision(dataset: Dataset, resample_factor: int, average_me
     :param k: Specify k parameter
     :return: Average max-precision
     """
-    baseline_results = load_max_precision_results(dataset=dataset, resample_factor=resample_factor, method="baseline",
-                                                  test_window_size=window, k=k)
-    amusement_results = load_max_precision_results(dataset=dataset, resample_factor=resample_factor, method="amusement",
-                                                   test_window_size=window, k=k)
+    non_stress_results = load_max_precision_results(dataset=dataset, resample_factor=resample_factor,
+                                                    method="non-stress", test_window_size=window, k=k)
     stress_results = load_max_precision_results(dataset=dataset, resample_factor=resample_factor, method="stress",
                                                 test_window_size=window, k=k)
 
@@ -83,13 +81,11 @@ def get_average_max_precision(dataset: Dataset, resample_factor: int, average_me
     try:
         # Averaging method = "mean"
         if average_method == "mean":
-            result = round(statistics.mean([baseline_results["precision"], amusement_results["precision"],
-                                            stress_results["precision"]]), 3)
+            result = round(statistics.mean([non_stress_results["precision"], stress_results["precision"]]), 3)
         # Averaging method = "weighted-mean"
         else:
             class_distributions = get_class_distribution(dataset=dataset)
-            result = round(baseline_results["precision"] * class_distributions["baseline"] +
-                           amusement_results["precision"] * class_distributions["amusement"] +
+            result = round(non_stress_results["precision"] * class_distributions["non-stress"] +
                            stress_results["precision"] * class_distributions["stress"], 3)
 
     except KeyError:
@@ -179,7 +175,7 @@ def get_best_sensor_weightings(dataset: Dataset, resample_factor: int, test_wind
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param test_window_size: Specify test-window-size
-    :param methods: List with methods (baseline, amusement, stress); if None: all methods are used
+    :param methods: List with methods (non-stress, stress); if None: all methods are used
     :param k_list: Specify k parameters for precision@k; if None: 1, 3, 5 are used
     :return: Dictionary with weighting results
     """

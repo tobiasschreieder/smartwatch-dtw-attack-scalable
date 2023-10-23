@@ -15,7 +15,7 @@ cfg = Config.get()
 SUBJECT_LIST = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17]
 
 # All available classes
-CLASSES = ["baseline", "amusement", "stress"]
+CLASSES = ["non-stress", "stress"]
 
 # List with all sensor combinations
 SENSOR_COMBINATIONS = [["bvp"], ["eda"], ["acc"], ["temp"], ["bvp", "eda"], ["bvp", "temp"], ["bvp", "acc"],
@@ -85,7 +85,7 @@ class Subject:
         df['label'] = df['label'].fillna(method='ffill')
         df.reset_index(drop=True, inplace=True)
         df.drop(df[df['label'].isin([0.0, 4.0, 5.0, 6.0, 7.0])].index, inplace=True)
-        df['label'] = df['label'].replace([1.0, 2.0, 3.0], [0, 1, 0.5])
+        df['label'] = df['label'].replace([1.0, 2.0, 3.0], [0, 1, 0])
         df.reset_index(drop=True, inplace=True)
 
         # Normalize data (no train test leakage since data frame per subject)

@@ -13,8 +13,7 @@ import time
 cfg = Config.get()
 
 
-WINDOWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 50, 100, 500, 1000]  # All calculated window-sizes
-WINDOWS = [2, 20]
+WINDOWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 50, 100, 500, 1000, 10000]  # All calculated window-sizes
 
 
 def get_windows() -> List[int]:
@@ -32,7 +31,7 @@ def create_subject_data(dataset: Dataset, method: str, test_window_size: int, su
     Create dictionary with all subjects and their sensor data as Dataframe split into train and test data
     Create dictionary with label information for test subject
     :param dataset: Specify dataset
-    :param method: String to specify which method should be used (baseline / amusement / stress)
+    :param method: String to specify which method should be used (non-stress / stress)
     :param test_window_size: Specify amount of windows (datapoints) in test set (int)
     :param subject_id: Specify which subject should be used as test subject
     :param additional_windows: Specify amount of additional windows to be removed around test-window
@@ -59,13 +58,9 @@ def create_subject_data(dataset: Dataset, method: str, test_window_size: int, su
         else:
             label_data = data_dict[subject]
 
-            # Method "baseline"
-            if method == "baseline":
-                label_data = label_data[label_data.label == 0]  # Data for subject with label == 0 -> baseline
-
-            # Method "amusement"
-            elif method == "amusement":
-                label_data = label_data[label_data.label == 0.5]  # Data for subject with label == 0.5 -> amusement
+            # Method "non-stress"
+            if method == "non-stress":
+                label_data = label_data[label_data.label == 0]  # Data for subject with label == 0 -> non-stress
 
             # Method "stress"
             else:
@@ -117,14 +112,11 @@ def create_subject_data(dataset: Dataset, method: str, test_window_size: int, su
                     subject_data["test"][subject].setdefault(sensor, test_subject)
                 else:
                     test_stress = (test["label"] == 1).sum()
-                    test_baseline = (test["label"] == 0).sum()
-                    test_amusement = (test["label"] == 0.5).sum()
+                    test_non_stress = (test["label"] == 0).sum()
                     train_stress = (train["label"] == 1).sum()
-                    train_baseline = (train["label"] == 0).sum()
-                    train_amusement = (train["label"] == 0.5).sum()
-                    labels.setdefault(subject, {"test_stress": test_stress, "test_baseline": test_baseline,
-                                                "test_amusement": test_amusement, "train_stress": train_stress,
-                                                "train_baseline": train_baseline, "train_amusement": train_amusement})
+                    train_non_stress = (train["label"] == 0).sum()
+                    labels.setdefault(subject, {"test_stress": test_stress, "test_non_stress": test_non_stress,
+                                                "train_stress": train_stress, "train_non_stress": train_non_stress})
 
     return subject_data, labels
 
@@ -146,10 +138,9 @@ def test_max_window_size(dataset: Dataset, test_window_sizes: List[int], additio
     min_method_length = additional_windows * 2
 
     for subject, data in data_dict.items():
-        baseline_length = len(data[data.label == 0])
-        amusement_length = len(data[data.label == 0.5])
+        non_stress_length = len(data[data.label == 0])
         stress_length = len(data[data.label == 1])
-        min_method_subject_length = min(baseline_length, amusement_length, stress_length)
+        min_method_subject_length = min(non_stress_length, stress_length)
 
         if min_method_length == (additional_windows * 2) or min_method_subject_length < min_method_length:
             min_method_length = min_method_subject_length
@@ -170,7 +161,7 @@ def calculate_alignment(dataset: Dataset, subject_id: int, method: str, test_win
     Calculate DTW-Alignments for sensor data using Dynamic Time Warping
     :param dataset: Specify dataset
     :param subject_id: Specify which subject should be used as test subject
-    :param method: String to specify which method should be used (baseline / amusement / stress)
+    :param method: String to specify which method should be used (non-stress / stress)
     :param test_window_size: Specify amount of windows (datapoints) in test set (int)
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param additional_windows: Specify amount of additional windows to be removed around test-window
@@ -205,10 +196,14 @@ def run_calculations(dataset: Dataset, test_window_sizes: List[int], resample_fa
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param additional_windows: Specify amount of additional windows to be removed around test-window
     :param n_jobs: Number of processes to use (parallelization)
-    :param methods:  List with all method that should be used -> "baseline" / "amusement" / "stress" (str)
+    :param methods:  List with all method that should be used -> "non-stress" / "stress" (str)
     :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
     """
-    def parallel_calculation(current_subject_id):
+    def parallel_calculation(current_subject_id: int):
+        """
+        Run parallel calculations
+        :param current_subject_id: Specify subject_id
+        """
         results_standard = calculate_alignment(dataset=dataset, subject_id=current_subject_id, method=method,
                                                test_window_size=test_window_size,
                                                additional_windows=additional_windows,
@@ -229,7 +224,7 @@ def run_calculations(dataset: Dataset, test_window_sizes: List[int], resample_fa
             with open(os.path.join(path, path_string_standard), "w", encoding="utf-8") as outfile:
                 json.dump(results_standard, outfile)
 
-            print("SW-DTW results saved at: " + str(path))
+            print("SW-DTW results saved at: " + str(os.path.join(path, path_string_standard)))
 
         except FileNotFoundError:
             with open("SW-DTW_results_standard_" + str(method) + "_" + str(test_window_size) + "_S" +
@@ -254,25 +249,25 @@ def run_calculations(dataset: Dataset, test_window_sizes: List[int], resample_fa
                 print("--Current method: " + str(method))
 
                 # Parallelization
-                with Parallel(n_jobs=n_jobs, verbose=2) as parallel:
+                with Parallel(n_jobs=n_jobs) as parallel:
                     parallel(delayed(parallel_calculation)(current_subject_id=subject_id) for subject_id in subject_ids)
 
-            end = time.perf_counter()
+                end = time.perf_counter()
 
-            # Save runtime as txt file
-            dataset_path = os.path.join(cfg.out_dir, dataset.name)
-            resample_path = os.path.join(dataset_path, "resample-factor=" + str(resample_factor))
-            alignments_path = os.path.join(resample_path, "alignments")
-            runtime_path = os.path.join(alignments_path, "runtime")
-            os.makedirs(runtime_path, exist_ok=True)
+                # Save runtime as txt file
+                dataset_path = os.path.join(cfg.out_dir, dataset.name)
+                resample_path = os.path.join(dataset_path, "resample-factor=" + str(resample_factor))
+                alignments_path = os.path.join(resample_path, "alignments")
+                runtime_path = os.path.join(alignments_path, "runtime")
+                os.makedirs(runtime_path, exist_ok=True)
 
-            file_name = "runtime_window_size=" + str(test_window_size) + ".txt"
-            save_path = os.path.join(runtime_path, file_name)
+                file_name = "runtime_window_size=" + str(test_window_size) + ".txt"
+                save_path = os.path.join(runtime_path, file_name)
 
-            text_file = open(save_path, "w")
-            text = "Runtime: " + str(end - start)
-            text_file.write(text)
-            text_file.close()
+                text_file = open(save_path, "w")
+                text = "Runtime: " + str(end - start)
+                text_file.write(text)
+                text_file.close()
 
     else:
         print("Please specify valid window-sizes!")
