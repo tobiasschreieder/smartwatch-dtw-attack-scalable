@@ -57,6 +57,8 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, rank_met
         f = open(os.path.join(results_path, path_string), "r")
         results = json.loads(f.read())
         results = {int(k): v for k, v in results.items()}
+        for k in results:
+            results[k] = {int(k): v for k, v in results[k].items()}
 
     # Calculate results if not existing
     except FileNotFoundError:
