@@ -1,4 +1,5 @@
 from preprocessing.datasets.dataset import Dataset
+from alignments.dtw_attacks.dtw_attack import DtwAttack
 from config import Config
 
 import json
@@ -10,12 +11,13 @@ from typing import Dict, Union, List
 cfg = Config.get()
 
 
-def load_results(dataset: Dataset, resample_factor: int, subject_id: int, method: str, test_window_size: int,
-                 normalized_data: bool = False) -> Dict[str, Dict[str, float]]:
+def load_results(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, subject_id: int, method: str,
+                 test_window_size: int, normalized_data: bool = False) -> Dict[str, Dict[str, float]]:
     """
     Load DTW-attack results from ../out/alignments/
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param dtw_attack: Specify DTW-attack
     :param subject_id: Specify subject
     :param method: Specify method ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
@@ -31,7 +33,8 @@ def load_results(dataset: Dataset, resample_factor: int, subject_id: int, method
     try:
         data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
         resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-        alignment_path = os.path.join(resample_path, "alignments")  # add /alignments to path
+        attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
+        alignment_path = os.path.join(attack_path, "alignments")  # add /alignments to path
         method_path = os.path.join(alignment_path, str(method))  # add /method to path
         window_path = os.path.join(method_path, "window-size=" + str(test_window_size))  # add /test=X to path
 
@@ -64,12 +67,13 @@ def load_results(dataset: Dataset, resample_factor: int, subject_id: int, method
     return reduced_results
 
 
-def load_max_precision_results(dataset: Dataset, resample_factor: int, method: str, test_window_size: int, k: int) \
-        -> Dict[str, Union[float, List[Dict[str, float]]]]:
+def load_max_precision_results(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, method: str,
+                               test_window_size: int, k: int) -> Dict[str, Union[float, List[Dict[str, float]]]]:
     """
     Load max-precision results
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param dtw_attack: Specify DTW-attack
     :param method: Specify method
     :param test_window_size: Specify test-window-size
     :param k: Specify k
@@ -79,7 +83,8 @@ def load_max_precision_results(dataset: Dataset, resample_factor: int, method: s
     try:
         data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
         resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-        precision_path = os.path.join(resample_path, "precision")  # add /precision to path
+        attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
+        precision_path = os.path.join(attack_path, "precision")  # add /precision to path
         method_path = os.path.join(precision_path, str(method))  # add /method to path
         window_path = os.path.join(method_path, "window-size=" + str(test_window_size))  # add /test=0.XX to path
         max_precision_path = os.path.join(window_path, "max-precision")  # add /max-precision to path
@@ -110,8 +115,7 @@ def load_complete_alignment_results(dataset: Dataset, resample_factor: int, subj
     try:
         data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
         resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-        alignments_path = os.path.join(resample_path, "alignments")  # add /subject-plots to path
-        complete_path = os.path.join(alignments_path, "complete")  # add /complete to path
+        complete_path = os.path.join(resample_path, "complete-alignments")  # add /complete to path
 
         if normalized_data:
             path = os.path.join(complete_path, "SW-DTW_results_normalized_complete_S" + str(subject_id) + ".json")

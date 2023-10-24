@@ -10,31 +10,31 @@ Please download the WESAD dataset from https://uni-siegen.sciebo.de/s/HGdUkoNlW1
 
 ## Code calculations:
 1. Calculate DTW-alignments over complete sensor signals and save results to /out/dataset/resample-factor=x/alignments/complete
-* run_dtw_alignments(dataset=dataset, resample_factor=resample_factor)
+* run_dtw_alignments()
 
 2. Plot DTW alignment subject distance heatmap and save plot to /out/dataset/resample-factor=x/eda
-* plot_alignment_heatmap(dataset=dataset, resample_factor=resample_factor)
+* plot_distance_heatmap()
 
 3. Calculate DTW-alignments and save results to /out/dataset/resample-factor=x/alignments
-* run_calculations(dataset=dataset, resample_factor=resample_factor, test_window_sizes=[1, 10, 100])
+* run_calculations()
 
 4. Plot exploratory data analysis to /out/eda
-* plot_subject_data(dataset=dataset, resample_factor=resample_factor)
+* plot_subject_data()
 
 5. Evaluate DTW-alignment results per subject; save MD-tables with distance and rank results and realistic-rank-plots to /out/dataset/resample-factor=x/subject-plots
-* subject_evaluation(dataset=dataset, resample_factor=resample_factor)
+* subject_evaluation()
 
 6. Evaluation DTW-alignment results overall mit precision@k; save MD-tables with precision values
-* precision_evaluation(dataset=dataset, resample_factor=resample_factor, k_list=[1, 3, 5])
+* precision_evaluation()
 
 7. Complete optimization evaluation, save precision@k values as MD-table
-* run_optimization_evaluation(dataset=dataset, resample_factor=resample_factor)
+* run_optimization_evaluation()
 
 8. Calculate maximum precisions, save precision@k values as json file
-* run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor)
+* run_calculate_max_precision()
 
 9. Overall evaluation with (DTW-results, maximum results, random guess results), save precision@k values as MD-table
-* run_overall_evaluation(dataset=dataset, resample_factor=resample_factor, save_weightings=True)
+* run_overall_evaluation()
 
 **Run startup.py for complete DTW-attack and evaluations**
 * Please make sure that there is enough RAM available (>= 64 GB) or downsample the dataset!

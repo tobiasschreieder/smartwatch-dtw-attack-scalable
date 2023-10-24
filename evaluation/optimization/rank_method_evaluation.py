@@ -1,4 +1,4 @@
-from alignments.dtw_attack import get_windows
+from alignments.dtw_attacks.dtw_attack import DtwAttack
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.create_md_tables import create_md_precision_rank_method
@@ -15,19 +15,20 @@ import json
 cfg = Config.get()
 
 
-def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, subject_ids: List = None,
-                                     k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
+def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack,
+                                     subject_ids: List = None, k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
     """
     Calculate precision@k values for rank-method evaluation -> Mean over sensor-combinations, methods
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param dtw_attack: Specify DTW-attack
     :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param k_list: Specify k parameters; if None: 1, 3, 5 are used
     :return: Dictionary with precision values
     """
     sensor_combinations = dataset.get_sensor_combinations()  # Get all sensor-combinations
     classes = dataset.get_classes()  # Get all classes
-    test_window_sizes = get_windows()  # Get all test-window-sizes
+    test_window_sizes = dtw_attack.get_windows()  # Get all test-window-sizes
 
     # List with all k for precision@k that should be considered
     complete_k_list = [i for i in range(1, len(dataset.get_subject_list()) + 1)]
@@ -38,7 +39,8 @@ def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, sub
     # Specify paths
     data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-    evaluations_path = os.path.join(resample_path, "evaluations")  # add /evaluations to path
+    attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
+    evaluations_path = os.path.join(attack_path, "evaluations")  # add /evaluations to path
     results_path = os.path.join(evaluations_path, "results")  # add /results to path
     os.makedirs(results_path, exist_ok=True)
     path_string = ("SW-DTW_rank-method-results_" + dataset.get_dataset_name() + "_" + str(resample_factor) + ".json")
@@ -59,6 +61,7 @@ def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, sub
                     # Calculate realistic ranks with rank method "rank"
                     realistic_ranks_comb_rank = get_realistic_ranks_combinations(dataset=dataset,
                                                                                  resample_factor=resample_factor,
+                                                                                 dtw_attack=dtw_attack,
                                                                                  rank_method="rank",
                                                                                  combinations=sensor_combinations,
                                                                                  method=method,
@@ -73,6 +76,7 @@ def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, sub
                     # Calculate realistic ranks with rank method "score"
                     realistic_ranks_comb_score = get_realistic_ranks_combinations(dataset=dataset,
                                                                                   resample_factor=resample_factor,
+                                                                                  dtw_attack=dtw_attack,
                                                                                   rank_method="score",
                                                                                   combinations=sensor_combinations,
                                                                                   method=method,
@@ -147,16 +151,18 @@ def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, sub
     return results
 
 
-def calculate_best_k_parameters(dataset: Dataset, resample_factor: int) -> Dict[str, int]:
+def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack) -> Dict[str, int]:
     """
     Calculate k-parameters where precision@k == 1
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param dtw_attack: Specify DTW-attack
     :return: Dictionary with results
     """
     amount_subjects = len(dataset.get_subject_list())
     k_list = list(range(1, amount_subjects + 1))  # List with all possible k parameters
-    results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor, k_list=k_list)
+    results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
+                                               k_list=k_list)
     best_k_parameters = dict()
 
     set_method = False
@@ -195,27 +201,31 @@ def get_best_rank_method_configuration(res: Dict[int, Dict[str, float]]) -> str:
     return best_rank_method
 
 
-def run_rank_method_evaluation(dataset: Dataset, resample_factor: int, k_list: List[int] = None):
+def run_rank_method_evaluation(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, k_list: List[int] = None):
     """
     Run and save evaluation for rank-methods
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param dtw_attack: Specify DTW-attack
     :param k_list: Specify k-parameters
     """
     # Specify k-parameters
     if k_list is None:
         k_list = [1, 3, 5]
 
-    results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor, k_list=k_list)
+    results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
+                                               k_list=k_list)
     best_rank_method = get_best_rank_method_configuration(res=results)
-    best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor)
+    best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor,
+                                                    dtw_attack=dtw_attack)
     text = [create_md_precision_rank_method(results=results, best_rank_method=best_rank_method,
                                             best_k_parameters=best_k_parameters)]
 
     # Save MD-File
     data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-    evaluations_path = os.path.join(resample_path, "evaluations")  # add /evaluations to path
+    attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
+    evaluations_path = os.path.join(attack_path, "evaluations")  # add /evaluations to path
     os.makedirs(evaluations_path, exist_ok=True)
 
     path_string = "SW-DTW_evaluation_rank_methods.md"

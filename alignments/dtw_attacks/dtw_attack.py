@@ -1,0 +1,88 @@
+from preprocessing.datasets.dataset import Dataset
+
+from typing import Tuple, Dict, List
+import pandas as pd
+
+
+class DtwAttack:
+    def __init__(self):
+        """
+        Base Class for DTW-attacks
+        """
+        self.name = "DTW-Attack"
+        self.windows = []
+        pass
+
+    def create_subject_data(self, dataset: Dataset, method: str, test_window_size: int, subject_id: int,
+                            additional_windows: int, resample_factor: int) \
+            -> Tuple[Dict[str, Dict[int, Dict[str, pd.DataFrame]]], Dict[int, Dict[str, int]]]:
+        """
+        Create dictionary with all subjects and their sensor data as Dataframe split into train and test data
+        Create dictionary with label information for test subject
+        :param dataset: Specify dataset
+        :param method: String to specify which method should be used (non-stress / stress)
+        :param test_window_size: Specify amount of windows (datapoints) in test set (int)
+        :param subject_id: Specify which subject should be used as test subject
+        :param additional_windows: Specify amount of additional windows to be removed around test-window
+        :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+        :return: Tuple with create subject_data and labels (containing label information)
+        """
+        subject_data = {}
+        labels = {}
+        return subject_data, labels
+
+    def test_max_window_size(self, dataset: Dataset, test_window_sizes: List[int], additional_windows: int,
+                             resample_factor: int) -> bool:
+        """
+        Test all given test window-sizes if they are valid
+        :param dataset: Specify dataset
+        :param test_window_sizes: List with all test_window-sizes to be tested
+        :param additional_windows: Specify amount of additional windows to be removed around test-window
+        :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+        :return: Boolean -> False if there is at least one wrong test window-size
+        """
+        return False
+
+    def calculate_alignment(self, dataset: Dataset, subject_id: int, method: str, test_window_size: int,
+                            resample_factor: int, additional_windows: int) -> Dict[int, Dict[str, float]]:
+        """
+        Calculate DTW-Alignments for sensor data using Dynamic Time Warping
+        :param dataset: Specify dataset
+        :param subject_id: Specify which subject should be used as test subject
+        :param method: String to specify which method should be used (non-stress / stress)
+        :param test_window_size: Specify amount of windows (datapoints) in test set (int)
+        :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+        :param additional_windows: Specify amount of additional windows to be removed around test-window
+        :return: Tuple with Dictionaries of standard and normalized results
+        """
+        results_standard = {}
+        return results_standard
+
+    def run_calculations(self, dataset: Dataset, test_window_sizes: List[int], resample_factor: int,
+                         additional_windows: int, n_jobs: int, methods: List[str] = None,
+                         subject_ids: List[int] = None):
+        """
+        Run DTW-calculations with all given parameters and save results as json
+        :param dataset: Specify dataset, which should be used
+        :param test_window_sizes: List with all test windows that should be used (int)
+        :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+        :param additional_windows: Specify amount of additional windows to be removed around test-window
+        :param n_jobs: Number of processes to use (parallelization)
+        :param methods:  List with all method that should be used -> "non-stress" / "stress" (str)
+        :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
+        """
+        pass
+
+    def get_windows(self) -> List[int]:
+        """
+        Get test-window-sizes
+        :return: List with all test-window-sizes
+        """
+        return self.windows
+
+    def get_attack_name(self) -> str:
+        """
+        Get name of DTW-attack
+        :return: String with name
+        """
+        return self.name

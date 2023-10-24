@@ -1,6 +1,7 @@
 from preprocessing.datasets.dataset import Dataset
 from evaluation.metrics.calculate_ranks import run_calculate_ranks, realistic_rank, get_realistic_ranks_combinations
 from preprocessing.process_results import load_results
+from alignments.dtw_attacks.dtw_attack import DtwAttack
 from config import Config
 
 from typing import List, Dict, Union
@@ -61,12 +62,13 @@ def calculate_precision_combinations(dataset: Dataset, realistic_ranks_comb: Dic
     return precision_comb
 
 
-def calculate_max_precision(dataset: Dataset, resample_factor: int, k: int, step_width: float, method: str,
-                            test_window_size: int) -> Dict[str, Union[float, List[float]]]:
+def calculate_max_precision(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, k: int, step_width: float,
+                            method: str, test_window_size: int) -> Dict[str, Union[float, List[float]]]:
     """
     Calculate and save maximum possible precision value with all sensor weight characteristics
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param dtw_attack: Specify DTW-attack
     :param k: Specify k for precision@k
     :param step_width: Specify step_with for weights
     :param method: Specify method of alignments
@@ -79,17 +81,12 @@ def calculate_max_precision(dataset: Dataset, resample_factor: int, k: int, step
         :param test_weights: Specify weights
         :return: Calculated precision results
         """
-        realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset,
-                                                                resample_factor=resample_factor,
-                                                                rank_method="max",
-                                                                combinations=sensor_combinations,
-                                                                method=method,
-                                                                test_window_size=test_window_size,
-                                                                weights=test_weights)
+        realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset, resample_factor=resample_factor,
+                                                                dtw_attack=dtw_attack, rank_method="max",
+                                                                combinations=sensor_combinations, method=method,
+                                                                test_window_size=test_window_size, weights=test_weights)
         precision_combinations = calculate_precision_combinations(dataset=dataset,
-                                                                  realistic_ranks_comb
-                                                                  =realistic_ranks_comb,
-                                                                  k=k)
+                                                                  realistic_ranks_comb=realistic_ranks_comb, k=k)
 
         results = list()
         for c, p in precision_combinations.items():
@@ -132,7 +129,8 @@ def calculate_max_precision(dataset: Dataset, resample_factor: int, k: int, step
     try:
         data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
         resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-        precision_path = os.path.join(resample_path, "precision")  # add /precision to path
+        attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
+        precision_path = os.path.join(attack_path, "precision")  # add /precision to path
         method_path = os.path.join(precision_path, str(method))  # add /method to path
         window_path = os.path.join(method_path, "window-size=" + str(test_window_size))  # add /test=X to path
         max_precision_path = os.path.join(window_path, "max-precision")  # add /max-precision to path

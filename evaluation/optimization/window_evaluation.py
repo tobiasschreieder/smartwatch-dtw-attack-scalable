@@ -1,4 +1,4 @@
-from alignments.dtw_attack import get_windows
+from alignments.dtw_attacks.dtw_attack import DtwAttack
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.create_md_tables import create_md_precision_windows
@@ -18,13 +18,15 @@ import json
 cfg = Config.get()
 
 
-def calculate_window_precisions(dataset: Dataset, resample_factor: int, rank_method: str = "score",
-                                average_method: str = "weighted-mean", sensor_combination=None,
-                                subject_ids: List = None, k_list: List[int] = None) -> Dict[int, Dict[int, float]]:
+def calculate_window_precisions(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack,
+                                rank_method: str = "score", average_method: str = "weighted-mean",
+                                sensor_combination=None, subject_ids: List = None, k_list: List[int] = None) \
+        -> Dict[int, Dict[int, float]]:
     """
     Calculate precisions per test-window-size, mean over sensors and test-window-size
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param dtw_attack: Specify DTW-attack
     :param rank_method: Specify rank-method "score" or "rank" (use beste rank-method)
     :param average_method: Specify averaging-method "mean" or "weighted-mean" (Choose best one)
     :param sensor_combination: Specify sensor-combination e.g. [["bvp", "acc", "temp"]] (Choose best on)
@@ -33,7 +35,7 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, rank_met
     :return: Dictionary with results
     """
     classes = dataset.get_classes()  # Get all classes
-    windows_test = get_windows()  # Get all test-windows
+    windows_test = dtw_attack.get_windows()  # Get all test-windows
 
     # List with all k for precision@k that should be considered
     complete_k_list = [i for i in range(1, len(dataset.get_subject_list()) + 1)]
@@ -47,7 +49,8 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, rank_met
     # Specify paths
     data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-    evaluations_path = os.path.join(resample_path, "evaluations")  # add /evaluations to path
+    attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
+    evaluations_path = os.path.join(attack_path, "evaluations")  # add /evaluations to path
     results_path = os.path.join(evaluations_path, "results")  # add /results to path
     os.makedirs(results_path, exist_ok=True)
     path_string = ("SW-DTW_window-results_" + dataset.get_dataset_name() + "_" + str(resample_factor) + ".json")
@@ -71,6 +74,7 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, rank_met
                     # Calculate realistic ranks with specified rank-method
                     realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset,
                                                                             resample_factor=resample_factor,
+                                                                            dtw_attack=dtw_attack,
                                                                             rank_method=rank_method,
                                                                             combinations=sensor_combination,
                                                                             method=method,
@@ -124,12 +128,13 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, rank_met
     return results
 
 
-def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, rank_method: str, average_method: str,
-                                sensor_combination: List[List[str]]) -> Dict[float, int]:
+def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, rank_method: str,
+                                average_method: str, sensor_combination: List[List[str]]) -> Dict[float, int]:
     """
     Calculate k-parameters where precision@k == 1
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param dtw_attack: Specify DTW-attack
     :param rank_method: Specify ranking-method ("score" or "rank")
     :param average_method: Specify class averaging-method ("mean" or "weighted-mean)
     :param sensor_combination: Specify sensor-combination e.g. [["bvp", "acc", "temp"]] (Choose best on)
@@ -137,8 +142,8 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, rank_met
     """
     amount_subjects = len(dataset.get_subject_list())
     k_list = list(range(1, amount_subjects + 1))  # List with all possible k parameters
-    results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor, k_list=k_list,
-                                          rank_method=rank_method, average_method=average_method,
+    results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
+                                          k_list=k_list, rank_method=rank_method, average_method=average_method,
                                           sensor_combination=sensor_combination)
     best_k_parameters = dict()
 
@@ -219,12 +224,13 @@ def get_best_window_configuration(res: Dict[int, Dict[int, float]]) -> int:
     return best_window
 
 
-def run_window_evaluation(dataset: Dataset, resample_factor: int, rank_method: str = "score",
+def run_window_evaluation(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, rank_method: str = "score",
                           average_method: str = "weighted-mean", sensor_combination=None, k_list: List[int] = None):
     """
     Run and save evaluation for sensor-combinations
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param dtw_attack: Specify DTW-attack
     :param rank_method: Specify rank-method "score" or "rank" (use best performing method)
     :param average_method: Specify averaging-method "mean" or "weighted-mean" (use best performing method)
     :param sensor_combination: Specify sensor-combination e.g. [["acc", "temp"]] (Choose best on)
@@ -237,12 +243,13 @@ def run_window_evaluation(dataset: Dataset, resample_factor: int, rank_method: s
     if sensor_combination is None:
         sensor_combination = [["bvp", "eda", "acc", "temp"]]
 
-    results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor, rank_method=rank_method,
-                                          average_method=average_method, sensor_combination=sensor_combination,
-                                          k_list=k_list)
+    results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
+                                          rank_method=rank_method, average_method=average_method,
+                                          sensor_combination=sensor_combination, k_list=k_list)
     best_window = get_best_window_configuration(res=results)
     best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor,
-                                                    rank_method=rank_method, average_method=average_method,
+                                                    dtw_attack=dtw_attack, rank_method=rank_method,
+                                                    average_method=average_method,
                                                     sensor_combination=sensor_combination)
 
     text = [create_md_precision_windows(rank_method=rank_method, average_method=average_method, results=results,
@@ -252,7 +259,8 @@ def run_window_evaluation(dataset: Dataset, resample_factor: int, rank_method: s
     # Save MD-File
     data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-    evaluations_path = os.path.join(resample_path, "evaluations")  # add /evaluations to path
+    attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
+    evaluations_path = os.path.join(attack_path, "evaluations")  # add /evaluations to path
     os.makedirs(evaluations_path, exist_ok=True)
 
     path_string = "SW-DTW_evaluation_windows.md"

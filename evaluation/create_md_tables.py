@@ -1,6 +1,7 @@
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from preprocessing.datasets.dataset import Dataset
+from alignments.dtw_attacks.dtw_attack import DtwAttack
 
 from typing import List, Dict
 
@@ -110,13 +111,14 @@ def bold_maximum_precision(precision_comb: Dict[str, float], value: float) -> st
     return text
 
 
-def create_md_precision_combinations(dataset: Dataset, resample_factor: int, rank_method: str, method: str,
-                                     test_window_size: int, max_k: int = 15, subject_ids: List[int] = None,
+def create_md_precision_combinations(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, rank_method: str,
+                                     method: str, test_window_size: int, max_k: int = 15, subject_ids: List[int] = None,
                                      k_list: List[int] = None) -> str:
     """
     Create text for md-file with precision@k scores for all sensor combinations
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param dtw_attack: Specify DTW-attack
     :param rank_method: Specify ranking-method ("rank", "score")
     :param method: Specify method ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
@@ -133,9 +135,9 @@ def create_md_precision_combinations(dataset: Dataset, resample_factor: int, ran
     text = "### Precision@k table combinations (method: " + rank_method + ")" + "\n"
 
     realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset, resample_factor=resample_factor,
-                                                            rank_method=rank_method, combinations=sensor_combinations,
-                                                            method=method, test_window_size=test_window_size,
-                                                            subject_ids=subject_ids)
+                                                            dtw_attack=dtw_attack, rank_method=rank_method,
+                                                            combinations=sensor_combinations, method=method,
+                                                            test_window_size=test_window_size, subject_ids=subject_ids)
     precision_comb_1 = calculate_precision_combinations(dataset=dataset, realistic_ranks_comb=realistic_ranks_comb, k=1)
 
     text += "| Precision@k | "

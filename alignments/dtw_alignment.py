@@ -99,8 +99,7 @@ def run_dtw_alignments(dataset: Dataset, resample_factor: int, n_jobs: int = -1,
 
     data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-    alignments_path = os.path.join(resample_path, "alignments")  # add /alignments to path
-    complete_path = os.path.join(alignments_path, "complete")  # add /complete to path
+    complete_path = os.path.join(resample_path, "complete-alignments")  # add /complete to path
     os.makedirs(complete_path, exist_ok=True)
 
     # Run DTW Calculations
