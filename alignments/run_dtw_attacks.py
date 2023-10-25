@@ -8,7 +8,7 @@ from typing import List
 
 
 def run_dtw_attack(dtw_attack: DtwAttack, dataset: Dataset, resample_factor: int, test_window_sizes: List[int],
-                   additional_windows: int = 1000, n_jobs: int = -1, methods: List[str] = None,
+                   multi: int = 3, additional_windows: int = 1000, n_jobs: int = -1, methods: List[str] = None,
                    subject_ids: List[int] = None):
     """
     Run DTW-attack with all given parameters and save results as json
@@ -16,6 +16,7 @@ def run_dtw_attack(dtw_attack: DtwAttack, dataset: Dataset, resample_factor: int
     :param dataset: Specify dataset, which should be used
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param test_window_sizes: List with all test windows that should be used (int)
+    :param multi: Specify number of combined single attacks
     :param additional_windows: Specify amount of additional windows to be removed around test-window
     :param n_jobs: Number of processes to use (parallelization)
     :param methods: List with all method that should be used -> "non-stress" / "stress" (str)
@@ -31,6 +32,9 @@ def run_dtw_attack(dtw_attack: DtwAttack, dataset: Dataset, resample_factor: int
     elif dtw_attack.get_attack_name() == MultiDtwAttack().get_attack_name():
         print("Starting Multi-DTW-Attack!")
         multi_dtw_attack = MultiDtwAttack()
+        multi_dtw_attack.run_calculations(dataset=dataset, test_window_sizes=test_window_sizes, multi=multi,
+                                          resample_factor=resample_factor, additional_windows=additional_windows,
+                                          n_jobs=n_jobs, methods=methods, subject_ids=subject_ids)
 
     else:
         print("Please specify a valid DTW-Attack!")

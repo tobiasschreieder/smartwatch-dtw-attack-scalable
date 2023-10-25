@@ -1,5 +1,6 @@
 from preprocessing.datasets.dataset import Dataset
 from alignments.dtw_attacks.dtw_attack import DtwAttack
+from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
 from config import Config
 
 import json
@@ -49,6 +50,13 @@ def load_results(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, 
 
         f = open(path, "r")
         results = json.loads(f.read())
+
+        # If Multi-DTW-Attack just use mean results
+        if dtw_attack.get_attack_name() == MultiDtwAttack().get_attack_name():
+            multi_dtw_attack_results = dict()
+            for subject in results:
+                multi_dtw_attack_results.setdefault(subject, results[subject]["mean"])
+            results = multi_dtw_attack_results
 
         # Calculate mean of all 3 "ACC" Sensor distances
         for i in results:

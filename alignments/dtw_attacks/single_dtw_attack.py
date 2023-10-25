@@ -23,7 +23,7 @@ class SingleDtwAttack(DtwAttack):
 
         self.name = "Single-DTW-Attack"
         self.windows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 50, 100, 500, 1000, 10000]
-        self.windows = [2, 20]
+        self.windows = [2, 5, 7]
 
     def get_windows(self) -> List[int]:
         """
@@ -165,8 +165,7 @@ class SingleDtwAttack(DtwAttack):
 
     @classmethod
     def calculate_alignment(cls, dataset: Dataset, subject_id: int, method: str, test_window_size: int,
-                            resample_factor: int = 1,
-                            additional_windows: int = 10) -> Dict[int, Dict[str, float]]:
+                            resample_factor: int = 1, additional_windows: int = 1000) -> Dict[int, Dict[str, float]]:
         """
         Calculate DTW-Alignments for sensor data using Dynamic Time Warping
         :param dataset: Specify dataset

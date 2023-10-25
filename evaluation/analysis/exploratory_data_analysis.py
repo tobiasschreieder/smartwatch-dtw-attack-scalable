@@ -69,7 +69,7 @@ def plot_distance_heatmap(dataset: Dataset, resample_factor: int, normalized_dat
 
     # Plot heatmap
     fig, ax = plt.subplots()
-    im = ax.imshow(data_array, cmap=plt.cm.Blues)
+    im = ax.imshow(data_array)  # cmap=plt.cm.Blues
     axis = list(range(1, len(subject_ids) + 1))
     ax.set_xticks(np.arange(len(axis)), labels=axis)
     ax.set_yticks(np.arange(len(axis)), labels=axis)
@@ -91,6 +91,7 @@ def plot_distance_heatmap(dataset: Dataset, resample_factor: int, normalized_dat
     try:
         file_name = "eda_dtw_alignment_heatmap.pdf"
         plt.savefig(fname=os.path.join(eda_path, file_name), format="pdf", transparent=True, bbox_inches="tight")
+        print("Distance-Heatmap saved at: " + str(os.path.join(eda_path, file_name)))
 
     except FileNotFoundError:
         print("FileNotFoundError: Invalid directory structure!")

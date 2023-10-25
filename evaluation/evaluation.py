@@ -53,7 +53,7 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, dtw_atta
         for method in methods:
 
             # Parallelization
-            with Parallel(n_jobs=n_jobs, verbose=2) as parallel:
+            with Parallel(n_jobs=n_jobs) as parallel:
                 parallel(delayed(run_calculation)(k=k) for k in k_list)
 
 
