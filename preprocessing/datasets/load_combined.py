@@ -1,3 +1,5 @@
+from preprocessing.data_processing.data_processing import DataProcessing
+from preprocessing.data_processing.standard_processing import StandardProcessing
 from preprocessing.datasets.dataset import Dataset
 from preprocessing.datasets.load_wesad import Wesad
 from preprocessing.datasets.load_gan import WesadGan
@@ -18,9 +20,6 @@ SUBJECT_LIST = Wesad().get_subject_list() + WesadGan().get_subject_list()
 
 # All available classes
 CLASSES = Wesad().get_classes()
-
-# List with all sensor combinations
-SENSOR_COMBINATIONS = Wesad().get_sensor_combinations()
 
 
 class WesadCombined(Dataset):
@@ -44,8 +43,8 @@ class WesadCombined(Dataset):
             print("Creating wesad_combined_data.pickle from WESAD and WESAD-GAN dataset.")
 
             # Load data of all subjects in subject_list
-            wesad_data = Wesad().load_dataset(resample_factor=1)
-            wesad_gan_data = WesadGan().load_dataset(resample_factor=1)
+            wesad_data = Wesad().load_dataset(resample_factor=1, data_processing=StandardProcessing())
+            wesad_gan_data = WesadGan().load_dataset(resample_factor=1, data_processing=StandardProcessing())
             data_dict = wesad_data
             for k, v in wesad_gan_data.items():
                 data_dict.setdefault(k, v)
@@ -59,9 +58,10 @@ class WesadCombined(Dataset):
             except FileNotFoundError:
                 print("FileNotFoundError: Invalid directory structure! Please make sure that /dataset exists.")
 
-    def load_dataset(self, resample_factor: int = None) -> Dict[int, pd.DataFrame]:
+    def load_dataset(self, data_processing: DataProcessing, resample_factor: int = None) -> Dict[int, pd.DataFrame]:
         """
         Load preprocessed dataset from /dataset
+        :param data_processing: Specify type of data-processing
         :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
         :return: Dictionary with preprocessed data
         """
@@ -91,6 +91,9 @@ class WesadCombined(Dataset):
         else:
             data_dict = data
 
+        # Run data-processing
+        data_dict = data_processing.process_data(data_dict=data_dict)
+
         return data_dict
 
     def get_dataset_name(self) -> str:
@@ -106,13 +109,6 @@ class WesadCombined(Dataset):
         :return: List with subject-ids
         """
         return SUBJECT_LIST
-
-    def get_sensor_combinations(self) -> List[List[str]]:
-        """
-        Get sensor-combinations
-        :return: sensor-combinations
-        """
-        return SENSOR_COMBINATIONS
 
     def get_classes(self) -> List[str]:
         """

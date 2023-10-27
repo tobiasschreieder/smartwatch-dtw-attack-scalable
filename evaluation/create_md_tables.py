@@ -1,5 +1,6 @@
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
+from preprocessing.data_processing.data_processing import DataProcessing
 from preprocessing.datasets.dataset import Dataset
 from alignments.dtw_attacks.dtw_attack import DtwAttack
 
@@ -55,15 +56,21 @@ def create_md_distances(results: Dict[str, Dict[str, float]], subject_id: int) -
     :return: String with text
     """
     text = "### Distance table for subject " + str(subject_id) + "\n"
-    text += "| Subject | BVP | EDA | ACC | TEMP |" + "\n"
-    text += "|---|---|---|---|---|" + "\n"
+    text += "| Subject | "
+    for sensor in results[list(results.keys())[0]]:
+        text += sensor.upper() + " | "
+    text += "\n"
+
+    text += "|---|"
+    for sensor in results[list(results.keys())[0]]:
+        text += "---|"
+    text += "\n"
 
     for i in results:
-        text += "| " + bold_subject(i, subject_id) + " | " + bold_minimums(results[i]["bvp"], "bvp",
-                                                                           results) + " | " + bold_minimums(
-            results[i]["eda"], "eda", results) + " | " + bold_minimums(results[i]["acc"], "acc",
-                                                                       results) + " | " + bold_minimums(
-            results[i]["temp"], "temp", results) + " |" + "\n"
+        text += "| " + bold_subject(i, subject_id) + " | "
+        for sensor in results[i]:
+            text += bold_minimums(value=results[i][sensor], sensor=sensor, results=results) + " | "
+        text += "\n"
 
     return text
 
@@ -79,16 +86,22 @@ def create_md_ranks(overall_ranks: Dict[str, int], individual_ranks: Dict[str, D
     :return: String with MD-text
     """
     text = "### Rank table for subject " + str(subject_id) + " using rank-method: " + str(rank_method) + "\n"
-    text += "| Subject | BVP | EDA | ACC | TEMP | Overall |" + "\n"
-    text += "|---|---|---|---|---|---|" + "\n"
+    text += "| Subject | "
+    for sensor in individual_ranks[list(individual_ranks.keys())[0]]:
+        text += sensor.upper() + " | "
+    text += "Overall |" + "\n"
+
+    text += "|---|"
+    for sensor in individual_ranks[list(individual_ranks.keys())[0]]:
+        text += "---|"
+    text += "---|" + "\n"
 
     for i in individual_ranks:
-        text += "| " + bold_subject(i, subject_id) + " | " + \
-                bold_minimums(individual_ranks[i]["bvp"], "bvp", individual_ranks) + " | " + \
-                bold_minimums(individual_ranks[i]["eda"], "eda", individual_ranks) + " | " + \
-                bold_minimums(individual_ranks[i]["acc"], "acc", individual_ranks) + " | " + \
-                bold_minimums(individual_ranks[i]["temp"], "temp", individual_ranks) + " | " + \
-                bold_minimums(overall_ranks[i], None, overall_ranks) + " |" + "\n"
+        text += "| " + bold_subject(i, subject_id) + " | "
+        for sensor in individual_ranks[i]:
+            text += (bold_minimums(value=individual_ranks[i][sensor], sensor=sensor, results=individual_ranks)
+                     + " | ")
+        text += bold_minimums(value=overall_ranks[i], sensor=None, results=overall_ranks) + " |" + "\n"
 
     return text
 
@@ -111,17 +124,20 @@ def bold_maximum_precision(precision_comb: Dict[str, float], value: float) -> st
     return text
 
 
-def create_md_precision_combinations(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, rank_method: str,
-                                     method: str, test_window_size: int, max_k: int = 15, subject_ids: List[int] = None,
-                                     k_list: List[int] = None) -> str:
+def create_md_precision_combinations(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                                     dtw_attack: DtwAttack, rank_method: str, method: str, test_window_size: int,
+                                     sensor_combinations: List[List[str]], max_k: int = 15,
+                                     subject_ids: List[int] = None, k_list: List[int] = None) -> str:
     """
     Create text for md-file with precision@k scores for all sensor combinations
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param rank_method: Specify ranking-method ("rank", "score")
     :param method: Specify method ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
+    :param sensor_combinations: List with sensor-combinations
     :param max_k: Specify maximum k for precision@k
     :param subject_ids: List with subject-ids; if None: all subjects are used
     :param k_list: Specify k parameters in precision tables
@@ -130,14 +146,13 @@ def create_md_precision_combinations(dataset: Dataset, resample_factor: int, dtw
     if subject_ids is None:
         subject_ids = dataset.get_subject_list()
 
-    sensor_combinations = dataset.get_sensor_combinations()
-
     text = "### Precision@k table combinations (method: " + rank_method + ")" + "\n"
 
     realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset, resample_factor=resample_factor,
-                                                            dtw_attack=dtw_attack, rank_method=rank_method,
-                                                            combinations=sensor_combinations, method=method,
-                                                            test_window_size=test_window_size, subject_ids=subject_ids)
+                                                            data_processing=data_processing, dtw_attack=dtw_attack,
+                                                            rank_method=rank_method, combinations=sensor_combinations,
+                                                            method=method, test_window_size=test_window_size,
+                                                            subject_ids=subject_ids)
     precision_comb_1 = calculate_precision_combinations(dataset=dataset, realistic_ranks_comb=realistic_ranks_comb, k=1)
 
     text += "| Precision@k | "

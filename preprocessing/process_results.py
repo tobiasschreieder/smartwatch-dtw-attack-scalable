@@ -1,3 +1,4 @@
+from preprocessing.data_processing.data_processing import DataProcessing
 from preprocessing.datasets.dataset import Dataset
 from alignments.dtw_attacks.dtw_attack import DtwAttack
 from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
@@ -12,17 +13,17 @@ from typing import Dict, Union, List
 cfg = Config.get()
 
 
-def load_results(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, subject_id: int, method: str,
-                 test_window_size: int, normalized_data: bool = False) -> Dict[str, Dict[str, float]]:
+def load_results(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,
+                 subject_id: int, method: str, test_window_size: int) -> Dict[str, Dict[str, float]]:
     """
     Load DTW-attack results from ../out/alignments/
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param subject_id: Specify subject
     :param method: Specify method ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
-    :param normalized_data: True if normalized results should be used
     :return: Dictionary with results
     """
     subject_ids = dataset.get_subject_list()
@@ -35,18 +36,14 @@ def load_results(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, 
         data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
         resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
         attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-        alignment_path = os.path.join(attack_path, "alignments")  # add /alignments to path
+        processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
+        alignment_path = os.path.join(processing_path, "alignments")  # add /alignments to path
         method_path = os.path.join(alignment_path, str(method))  # add /method to path
         window_path = os.path.join(method_path, "window-size=" + str(test_window_size))  # add /test=X to path
 
-        if normalized_data:
-            path_string = "SW-DTW_results_normalized_" + str(method) + "_" + str(test_window_size) + "_S" + str(
-                subject_id) + ".json"
-            path = os.path.join(window_path, path_string)
-        else:
-            path_string = "SW-DTW_results_standard_" + str(method) + "_" + str(test_window_size) + "_S" + str(
-                subject_id) + ".json"
-            path = os.path.join(window_path, path_string)
+        path_string = "SW-DTW_results_standard_" + str(method) + "_" + str(test_window_size) + "_S" + str(
+            subject_id) + ".json"
+        path = os.path.join(window_path, path_string)
 
         f = open(path, "r")
         results = json.loads(f.read())
@@ -60,8 +57,9 @@ def load_results(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, 
 
         # Calculate mean of all 3 "ACC" Sensor distances
         for i in results:
-            results[i].setdefault("acc", round(statistics.mean([results[i]["acc_x"], results[i]["acc_y"],
-                                                                results[i]["acc_z"]]), 4))
+            if "acc_x" in results[i]:
+                results[i].setdefault("acc", round(statistics.mean([results[i]["acc_x"], results[i]["acc_y"],
+                                                                    results[i]["acc_z"]]), 4))
 
         # Reduce results to specified subject-ids
         reduced_results = dict()
@@ -109,14 +107,14 @@ def load_max_precision_results(dataset: Dataset, resample_factor: int, dtw_attac
     return results
 
 
-def load_complete_alignment_results(dataset: Dataset, resample_factor: int, subject_id: int,
-                                    normalized_data: bool = False) -> Dict[str, float]:
+def load_complete_alignment_results(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                                    subject_id: int) -> Dict[str, float]:
     """
     Load complete alignment results from ../out/alignments/complete
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param subject_id: Specify subject-id
-    :param normalized_data: If True: normalized data is loaded
     :return: Dictionary with results
     """
     average_results = dict()
@@ -124,23 +122,24 @@ def load_complete_alignment_results(dataset: Dataset, resample_factor: int, subj
         data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
         resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
         complete_path = os.path.join(resample_path, "complete-alignments")  # add /complete to path
+        processing_path = os.path.join(complete_path, data_processing.name)  # add /data-processing to path
 
-        if normalized_data:
-            path = os.path.join(complete_path, "SW-DTW_results_normalized_complete_S" + str(subject_id) + ".json")
-        else:
-            path = os.path.join(complete_path, "SW-DTW_results_standard_complete_S" + str(subject_id) + ".json")
+        path = os.path.join(processing_path, "SW-DTW_results_standard_complete_S" + str(subject_id) + ".json")
 
         f = open(path, "r")
         results = json.loads(f.read())
 
         # Calculate mean of all 3 "ACC" Sensor distances
         for i in results:
-            results[i].setdefault("acc", round(statistics.mean([results[i]["acc_x"], results[i]["acc_y"],
-                                                                results[i]["acc_z"]]), 4))
+            if "acc_x" in results[i]:
+                results[i].setdefault("acc", round(statistics.mean([results[i]["acc_x"], results[i]["acc_y"],
+                                                                    results[i]["acc_z"]]), 4))
 
         for i in results:
-            average_results.setdefault(i, round(statistics.mean([results[i]["acc"], results[i]["bvp"],
-                                                                 results[i]["eda"], results[i]["temp"]]), 2))
+            sensor_results_list = list()
+            for sensor in results[i]:
+                sensor_results_list.append(results[i][sensor])
+            average_results.setdefault(i, round(statistics.mean(sensor_results_list), 2))
 
     except FileNotFoundError:
         print("FileNotFoundError: no results with this configuration available")

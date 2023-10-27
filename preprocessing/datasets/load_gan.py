@@ -1,3 +1,4 @@
+from preprocessing.data_processing.data_processing import DataProcessing
 from preprocessing.datasets.dataset import Dataset
 from config import Config
 
@@ -18,11 +19,6 @@ SUBJECT_LIST = [x for x in range(start, end + 1)]
 
 # All available classes
 CLASSES = ["non-stress", "stress"]
-
-# List with all sensor combinations
-SENSOR_COMBINATIONS = [["bvp"], ["eda"], ["acc"], ["temp"], ["bvp", "eda"], ["bvp", "temp"], ["bvp", "acc"],
-                       ["eda", "acc"], ["eda", "temp"], ["acc", "temp"], ["bvp", "eda", "acc"], ["bvp", "eda", "temp"],
-                       ["bvp", "acc", "temp"], ["eda", "acc", "temp"], ["bvp", "eda", "acc", "temp"]]
 
 
 class Subject:
@@ -127,9 +123,10 @@ class WesadGan(Dataset):
             except FileNotFoundError:
                 print("FileNotFoundError: Invalid directory structure! Please make sure that /dataset exists.")
 
-    def load_dataset(self, resample_factor: int = None) -> Dict[int, pd.DataFrame]:
+    def load_dataset(self, data_processing: DataProcessing, resample_factor: int = None) -> Dict[int, pd.DataFrame]:
         """
         Load preprocessed dataset from /dataset
+        :param data_processing: Specify type of data-processing
         :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
         :return: Dictionary with preprocessed data
         """
@@ -159,6 +156,9 @@ class WesadGan(Dataset):
         else:
             data_dict = data
 
+        # Run data-processing
+        data_dict = data_processing.process_data(data_dict=data_dict)
+
         return data_dict
 
     def get_dataset_name(self) -> str:
@@ -174,13 +174,6 @@ class WesadGan(Dataset):
         :return: List with subject-ids
         """
         return SUBJECT_LIST
-
-    def get_sensor_combinations(self) -> List[List[str]]:
-        """
-        Get sensor-combinations
-        :return: sensor-combinations
-        """
-        return SENSOR_COMBINATIONS
 
     def get_classes(self) -> List[str]:
         """

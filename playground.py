@@ -1,3 +1,5 @@
+from preprocessing.data_processing.standard_processing import StandardProcessing
+from preprocessing.data_processing.dba_processing import DbaProcessing
 from preprocessing.datasets.load_wesad import Wesad
 from preprocessing.datasets.load_gan import WesadGan
 from preprocessing.datasets.load_combined import WesadCombined
@@ -24,30 +26,33 @@ Example Calculations
 # Specify parameters
 dataset = Wesad()
 resample_factor = 1000
-dtw_attack = MultiDtwAttack()
+data_processing = StandardProcessing()
+dtw_attack = SingleDtwAttack()
 
 
 start = time.perf_counter()
 
 """1. Calculate DTW-alignments and save results to /out/alignments"""
-# run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, test_window_sizes=[2, 5, 7], resample_factor=resample_factor,
-#                multi=5)
+# run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing, test_window_sizes=[2, 5, 7],
+#                resample_factor=resample_factor, multi=5)
 
 """2. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
-# run_dtw_alignments(dataset=dataset, resample_factor=resample_factor)
+# run_dtw_alignments(dataset=dataset, data_processing=data_processing, resample_factor=resample_factor)
 
 """3. Plot DTW alignment subject distance heatmap and save plot to /out/eda"""
-# plot_distance_heatmap(dataset=dataset, resample_factor=resample_factor)
+# plot_distance_heatmap(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing)
 
 """4. Plot exploratory data analysis to /out/eda"""
-# plot_subject_data(dataset=dataset, resample_factor=resample_factor)
+# plot_subject_data(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing)
 
 """5. Evaluate DTW-alignment results per subject; save MD-tables with distance and rank results and realistic-rank-plots
 to /out/subject-plots"""
-# subject_evaluation(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack)
+# subject_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
+#                    dtw_attack=dtw_attack)
 
 """6. Evaluation DTW-alignment results overall mit precision@k; save MD-tables with precision values"""
-# precision_evaluation(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack, k_list=[1, 3, 5])
+# precision_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
+#                      dtw_attack=dtw_attack)
 
 """7. Evaluation of rank-method; save precision@k values as MD-table"""
 # run_rank_method_evaluation(dataset=dataset, resample_factor=resample_factor)
@@ -64,13 +69,14 @@ to /out/subject-plots"""
 #                       average_method="weighted-mean", sensor_combination=[["bvp", "acc"]])
 
 """11. Complete optimization evaluation, save precision@k values as MD-table"""
-# run_optimization_evaluation(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack)
+# run_optimization_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
+#                             dtw_attack=dtw_attack)
 
-"""12. Calculate maximum precisions, save precision@k values as json file"""
+"""12. Calculate maximum precisions, save precision@k values as json file"""  # TODO
 # run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack)
 
-"""13. Overall evaluation with (DTW-results, maximum results, random guess results), save precision@k values as 
-MD-table"""
+"""13. Overall evaluation with (DTW-results, maximum results, random guess results), save precision@k values as
+MD-table"""  # TODO
 # run_overall_evaluation(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack, save_weightings=True)
 
 end = time.perf_counter()

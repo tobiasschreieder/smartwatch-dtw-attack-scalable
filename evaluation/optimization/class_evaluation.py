@@ -2,7 +2,8 @@ from alignments.dtw_attacks.dtw_attack import DtwAttack
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.create_md_tables import create_md_precision_classes
-from preprocessing.datasets.dataset import Dataset
+from preprocessing.data_processing.data_processing import DataProcessing
+from preprocessing.datasets.dataset import Dataset, get_sensor_combinations
 from config import Config
 
 from typing import Dict, List, Tuple
@@ -16,13 +17,16 @@ import json
 cfg = Config.get()
 
 
-def get_class_distribution(dataset: Dataset) -> Dict[str, float]:
+def get_class_distribution(dataset: Dataset, resample_factor: int, data_processing: DataProcessing) \
+        -> Dict[str, float]:
     """
     Get proportions of baseline, stress and amusement data (mean over all subjects)
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param dataset: Specify dataset
+    :param data_processing: Specify type of data-processing
     :return: Dictionary with proportions
     """
-    data_dict = dataset.load_dataset()
+    data_dict = dataset.load_dataset(data_processing=data_processing, resample_factor=resample_factor)
 
     non_stress_proportions = list()
     stress_proportions = list()
@@ -43,20 +47,23 @@ def get_class_distribution(dataset: Dataset) -> Dict[str, float]:
     return {"non-stress": non_stress_proportion, "stress": stress_proportion}
 
 
-def calculate_class_precisions(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack,
-                               rank_method: str = "score", subject_ids: List = None, k_list: List[int] = None) \
-        -> Dict[int, Dict[str, float]]:
+def calculate_class_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                               dtw_attack: DtwAttack, rank_method: str = "score", subject_ids: List = None,
+                               k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
     """
     Calculate precisions per class ("baseline", "amusement", "stress"), mean over sensors and test-proportions
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param rank_method: Specify rank-method "score" or "rank" (use beste rank-method)
     :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param k_list: Specify k parameters; if None: 1, 3, 5 are used
     :return: Dictionary with results
     """
-    sensor_combinations = dataset.get_sensor_combinations()  # Get all sensor-combinations
+    # Get all sensor-combinations
+    sensor_combinations = get_sensor_combinations(dataset=dataset, resample_factor=resample_factor,
+                                                  data_processing=data_processing)
     classes = dataset.get_classes()  # Get all classes
     test_window_sizes = dtw_attack.get_windows()  # Get all test-windows
 
@@ -70,7 +77,8 @@ def calculate_class_precisions(dataset: Dataset, resample_factor: int, dtw_attac
     data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
     attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-    evaluations_path = os.path.join(attack_path, "evaluations")  # add /evaluations to path
+    processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
+    evaluations_path = os.path.join(processing_path, "evaluations")  # add /evaluations to path
     results_path = os.path.join(evaluations_path, "results")  # add /results to path
     os.makedirs(results_path, exist_ok=True)
     path_string = ("SW-DTW_class-results_" + dataset.get_dataset_name() + "_" + str(resample_factor) + ".json")
@@ -91,6 +99,7 @@ def calculate_class_precisions(dataset: Dataset, resample_factor: int, dtw_attac
                     # Calculate realistic ranks with specified rank-method
                     realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset,
                                                                             resample_factor=resample_factor,
+                                                                            data_processing=data_processing,
                                                                             dtw_attack=dtw_attack,
                                                                             rank_method=rank_method,
                                                                             combinations=sensor_combinations,
@@ -137,13 +146,14 @@ def calculate_class_precisions(dataset: Dataset, resample_factor: int, dtw_attac
     return results
 
 
-def calculate_average_class_precisions(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack,
-                                       rank_method: str = "score", subject_ids: List = None, k_list: List[int] = None) \
-        -> Tuple[Dict[int, float], Dict[int, int]]:
+def calculate_average_class_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                                       dtw_attack: DtwAttack, rank_method: str = "score", subject_ids: List = None,
+                                       k_list: List[int] = None) -> Tuple[Dict[int, float], Dict[int, int]]:
     """
     Calculate average class precision values (mean and weighted mean over classes)
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param rank_method: Specify rank-method "score" or "rank" (use beste rank-method)
     :param subject_ids: Specify subject-ids, if None: all subjects are used
@@ -156,9 +166,11 @@ def calculate_average_class_precisions(dataset: Dataset, resample_factor: int, d
     if subject_ids is None:
         subject_ids = dataset.get_subject_list()  # List with all subject-ids
 
-    results = calculate_class_precisions(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
+    results = calculate_class_precisions(dataset=dataset, resample_factor=resample_factor,
+                                         data_processing=data_processing, dtw_attack=dtw_attack,
                                          rank_method=rank_method, subject_ids=subject_ids, k_list=k_list)
-    class_distribution = get_class_distribution(dataset=dataset)
+    class_distribution = get_class_distribution(dataset=dataset, resample_factor=resample_factor,
+                                                data_processing=data_processing)
 
     average_results = dict()
     weighted_average_results = dict()
@@ -180,20 +192,22 @@ def calculate_average_class_precisions(dataset: Dataset, resample_factor: int, d
     return average_results, weighted_average_results
 
 
-def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, rank_method: str) \
-        -> Dict[str, int]:
+def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                                dtw_attack: DtwAttack, rank_method: str) -> Dict[str, int]:
     """
     Calculate k-parameters where precision@k == 1
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param rank_method: Specify ranking-method ("score" or "rank")
     :return: Dictionary with results
     """
     amount_subjects = len(dataset.get_subject_list())
     k_list = list(range(1, amount_subjects + 1))  # List with all possible k parameters
-    results = calculate_class_precisions(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
-                                         k_list=k_list, rank_method=rank_method)
+    results = calculate_class_precisions(dataset=dataset, resample_factor=resample_factor,
+                                         data_processing=data_processing, dtw_attack=dtw_attack, k_list=k_list,
+                                         rank_method=rank_method)
     best_k_parameters = dict()
 
     set_method = False
@@ -212,12 +226,13 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, dtw_atta
     return best_k_parameters
 
 
-def calculate_best_average_k_parameters(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack,
-                                        rank_method: str) -> Dict[str, int]:
+def calculate_best_average_k_parameters(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                                        dtw_attack: DtwAttack, rank_method: str) -> Dict[str, int]:
     """
     Calculate k-parameters where precision@k == 1 for average-classes
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param rank_method: Specify ranking-method ("score" or "rank")
     :return: Dictionary with results
@@ -226,6 +241,7 @@ def calculate_best_average_k_parameters(dataset: Dataset, resample_factor: int, 
     k_list = list(range(1, len(subject_ids) + 1))  # List with all possible k parameters
     average_results, weighted_average_results = calculate_average_class_precisions(dataset=dataset,
                                                                                    resample_factor=resample_factor,
+                                                                                   data_processing=data_processing,
                                                                                    dtw_attack=dtw_attack,
                                                                                    rank_method=rank_method,
                                                                                    k_list=k_list,
@@ -267,12 +283,13 @@ def get_best_class_configuration(average_res: Dict[int, float], weighted_average
     return best_class_method
 
 
-def run_class_evaluation(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, rank_method: str = "score",
-                         k_list: List[int] = None):
+def run_class_evaluation(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,
+                         rank_method: str = "score", k_list: List[int] = None):
     """
     Run and save evaluation for classes
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param rank_method: Specify rank-method "score" or "rank" (use best performing method)
     :param k_list: Specify k-parameters
@@ -281,18 +298,22 @@ def run_class_evaluation(dataset: Dataset, resample_factor: int, dtw_attack: Dtw
     if k_list is None:
         k_list = [1, 3, 5]
 
-    results = calculate_class_precisions(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
+    results = calculate_class_precisions(dataset=dataset, resample_factor=resample_factor,
+                                         data_processing=data_processing, dtw_attack=dtw_attack,
                                          rank_method=rank_method, k_list=k_list)
     average_results, weighted_average_results = calculate_average_class_precisions(dataset=dataset,
                                                                                    resample_factor=resample_factor,
+                                                                                   data_processing=data_processing,
                                                                                    dtw_attack=dtw_attack,
                                                                                    rank_method=rank_method)
     best_class_method = get_best_class_configuration(average_res=average_results,
                                                      weighted_average_res=weighted_average_results)
 
     best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor,
-                                                    dtw_attack=dtw_attack, rank_method=rank_method)
+                                                    data_processing=data_processing, dtw_attack=dtw_attack,
+                                                    rank_method=rank_method)
     best_average_k_parameters = calculate_best_average_k_parameters(dataset=dataset, resample_factor=resample_factor,
+                                                                    data_processing=data_processing,
                                                                     dtw_attack=dtw_attack, rank_method=rank_method)
 
     text = [create_md_precision_classes(rank_method=rank_method, results=results, average_results=average_results,
@@ -304,7 +325,8 @@ def run_class_evaluation(dataset: Dataset, resample_factor: int, dtw_attack: Dtw
     data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
     attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-    evaluations_path = os.path.join(attack_path, "evaluations")  # add /evaluations to path
+    processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
+    evaluations_path = os.path.join(processing_path, "evaluations")  # add /evaluations to path
     os.makedirs(evaluations_path, exist_ok=True)
 
     path_string = "SW-DTW_evaluation_classes.md"

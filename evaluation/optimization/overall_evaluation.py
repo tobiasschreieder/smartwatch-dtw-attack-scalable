@@ -6,6 +6,7 @@ from evaluation.optimization.rank_method_evaluation import calculate_rank_method
 from evaluation.optimization.sensor_evaluation import calculate_sensor_precisions, get_best_sensor_configuration, \
     list_to_string
 from evaluation.optimization.window_evaluation import calculate_window_precisions, get_best_window_configuration
+from preprocessing.data_processing.data_processing import DataProcessing
 from preprocessing.datasets.dataset import Dataset
 from preprocessing.process_results import load_max_precision_results
 from alignments.dtw_attacks.dtw_attack import DtwAttack
@@ -20,12 +21,14 @@ import json
 cfg = Config.get()
 
 
-def calculate_best_configurations(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack,
-                                  k_list: List[int] = None) -> Dict[str, Union[str, int, List[List[str]]]]:
+def calculate_best_configurations(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                                  dtw_attack: DtwAttack, k_list: List[int] = None) \
+        -> Dict[str, Union[str, int, List[List[str]]]]:
     """
     Calculate the best configurations for rank-method, classes, sensors and windows
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param k_list: Specify k-parameters
     :return: Dictionary with best configurations
@@ -35,13 +38,15 @@ def calculate_best_configurations(dataset: Dataset, resample_factor: int, dtw_at
         k_list = [1, 3, 5]
 
     # Best rank-method
-    results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
+    results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor,
+                                               data_processing=data_processing, dtw_attack=dtw_attack,
                                                k_list=k_list)
     best_rank_method = get_best_rank_method_configuration(res=results)
 
     # Best class
     average_results, weighted_average_results = calculate_average_class_precisions(dataset=dataset,
                                                                                    resample_factor=resample_factor,
+                                                                                   data_processing=data_processing,
                                                                                    dtw_attack=dtw_attack,
                                                                                    rank_method=best_rank_method,
                                                                                    k_list=k_list)
@@ -49,12 +54,14 @@ def calculate_best_configurations(dataset: Dataset, resample_factor: int, dtw_at
                                                      weighted_average_res=weighted_average_results)
 
     # Best sensors
-    results = calculate_sensor_precisions(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
+    results = calculate_sensor_precisions(dataset=dataset, resample_factor=resample_factor,
+                                          data_processing=data_processing, dtw_attack=dtw_attack,
                                           rank_method=best_rank_method, average_method=best_class_method, k_list=k_list)
     best_sensors = get_best_sensor_configuration(res=results)
 
     # Best window
-    results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
+    results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor,
+                                          data_processing=data_processing, dtw_attack=dtw_attack,
                                           rank_method=best_rank_method, average_method=best_class_method,
                                           sensor_combination=best_sensors, k_list=k_list)
     best_window = get_best_window_configuration(res=results)

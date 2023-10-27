@@ -1,3 +1,4 @@
+from preprocessing.data_processing.data_processing import DataProcessing
 from preprocessing.datasets.dataset import Dataset
 from preprocessing.process_results import load_results
 from alignments.dtw_attacks.dtw_attack import DtwAttack
@@ -42,8 +43,14 @@ def calculate_ranks_1(dataset: Dataset, results: Dict[str, Dict[str, float]]) \
 
     final_ranks = dict()
     for i in rank_results:
+        ranks = list()
+        for j in rank_results[i]:
+            ranks.append(rank_results[i][j])
+        final_ranks.setdefault(i, round(statistics.mean(ranks)))
+        """ 
         final_ranks.setdefault(i, round(statistics.mean(
             [rank_results[i]["bvp"], rank_results[i]["eda"], rank_results[i]["acc"], rank_results[i]["temp"]])))
+        """
 
     items = list(final_ranks.values())
     final_rank_list = [sorted(items).index(x) for x in items]
@@ -67,7 +74,10 @@ def calculate_ranks_2(dataset: Dataset, results: Dict[str, Dict[str, float]]) \
 
     result_lists = dict()
     for i in results:
-        mean_score = statistics.mean([results[i]["bvp"], results[i]["eda"], results[i]["acc"], results[i]["temp"]])
+        scores = list()
+        for j in results[i]:
+            scores.append(results[i][j])
+        mean_score = statistics.mean(scores)
         result_lists.setdefault(i, mean_score)
 
     items = list(result_lists.values())
@@ -141,12 +151,14 @@ def realistic_rank(overall_ranks: Dict[str, int], subject_id: int) -> int:
     return realistic_rank
 
 
-def get_realistic_ranks(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, rank_method: str, method: str,
-                        test_window_size: int, subject_ids: List[int] = None) -> List[int]:
+def get_realistic_ranks(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,
+                        rank_method: str, method: str, test_window_size: int, subject_ids: List[int] = None) \
+        -> List[int]:
     """
     Get list with sorted realistic ranks
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param rank_method: Specify ranking method ("rank" or "score")
     :param method: Specify method of results ("non-stress", "stress")
@@ -159,8 +171,9 @@ def get_realistic_ranks(dataset: Dataset, resample_factor: int, dtw_attack: DtwA
 
     real_ranks = list()
     for subject in subject_ids:
-        results = load_results(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
-                               subject_id=subject, method=method, test_window_size=test_window_size)
+        results = load_results(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
+                               dtw_attack=dtw_attack, subject_id=subject, method=method,
+                               test_window_size=test_window_size)
         overall_ranks, individual_ranks = run_calculate_ranks(dataset=dataset, results=results, rank_method=rank_method)
 
         real_rank = realistic_rank(overall_ranks, subject)
@@ -287,7 +300,7 @@ def run_calculate_ranks_combinations(dataset: Dataset, results: Dict[str, Dict[s
     :param dataset: Specify dataset
     :param results: Dictionary with results
     :param rank_method: Specify ranking method
-    :param combinations: Sensor combinations ("rank", "score", "max")
+    :param combinations: Sensor combinations
     :param weights: Specify weights for ranking method "max"
     :return: Dictionary with ranking results
     """
@@ -322,14 +335,15 @@ def run_calculate_ranks_combinations(dataset: Dataset, results: Dict[str, Dict[s
     return overall_ranks_comb
 
 
-def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, rank_method: str,
-                                     combinations: List[List[str]], method: str, test_window_size: int,
-                                     subject_ids: List[int] = None, weights: Dict[str, float] = None) \
-        -> Dict[str, List[int]]:
+def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                                     dtw_attack: DtwAttack, rank_method: str, combinations: List[List[str]],
+                                     method: str, test_window_size: int, subject_ids: List[int] = None,
+                                     weights: Dict[str, float] = None) -> Dict[str, List[int]]:
     """
     Get realistic ranks for sensor combination results
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param rank_method: Choose ranking method ("rank", "score", "max")
     :param combinations: Specify sensor combinations
@@ -350,7 +364,8 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dtw
         data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
         resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
         attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-        precision_path = os.path.join(attack_path, "precision")  # add /precision to path
+        processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
+        precision_path = os.path.join(processing_path, "precision")  # add /precision to path
         method_path = os.path.join(precision_path, method)
         window_path = os.path.join(method_path, "window-size=" + str(test_window_size))
         os.makedirs(window_path, exist_ok=True)
@@ -369,7 +384,8 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dtw
                 realistic_ranks_comb.setdefault(rank_method, dict())
                 for subject_id in subject_ids:
 
-                    results = load_results(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
+                    results = load_results(dataset=dataset, resample_factor=resample_factor,
+                                           data_processing=data_processing, dtw_attack=dtw_attack,
                                            subject_id=subject_id, method=method, test_window_size=test_window_size)
                     overall_ranks_comb = run_calculate_ranks_combinations(dataset=dataset, results=results,
                                                                           rank_method=rank_method,
