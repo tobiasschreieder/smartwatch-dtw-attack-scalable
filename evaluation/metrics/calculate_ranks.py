@@ -409,8 +409,9 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
     else:
         realistic_ranks_comb = dict()
         for subject_id in subject_ids:
-            results = load_results(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
-                                   subject_id=subject_id, method=method, test_window_size=test_window_size)
+            results = load_results(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
+                                   dtw_attack=dtw_attack, subject_id=subject_id, method=method,
+                                   test_window_size=test_window_size)
             overall_ranks_comb = run_calculate_ranks_combinations(dataset=dataset, results=results,
                                                                   rank_method=rank_method,
                                                                   combinations=combinations, weights=weights)

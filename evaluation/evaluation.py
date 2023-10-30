@@ -21,13 +21,14 @@ import matplotlib.pyplot as plt
 cfg = Config.get()
 
 
-def run_calculate_max_precision(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, n_jobs: int = -1,
-                                k_list: List[int] = None, methods: List = None, test_window_sizes: List = None,
-                                step_width: float = 0.1):
+def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                                dtw_attack: DtwAttack, n_jobs: int = -1, k_list: List[int] = None, methods: List = None,
+                                test_window_sizes: List = None, step_width: float = 0.1):
     """
     Run calculations of maximum-precisions for specified k's, methods and test-window-sizes
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param n_jobs: Number of processes to use (parallelization)
     :param k_list: List with all k parameter
@@ -40,15 +41,16 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, dtw_atta
         Run parallel calculation of max-precision
         :param k: Specify k-parameter
         """
-        calculate_max_precision(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack, k=k,
-                                step_width=step_width, method=method, test_window_size=test_window_size)
+        calculate_max_precision(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
+                                dtw_attack=dtw_attack, k=k, step_width=step_width, method=method,
+                                test_window_size=test_window_size)
 
     if methods is None:
         methods = dataset.get_classes()
     if test_window_sizes is None:
         test_window_sizes = dtw_attack.get_windows()
     if k_list is None:
-        k_list = [i for i in range(len(dataset.get_subject_list()) + 1)]
+        k_list = [i for i in range(1, len(dataset.get_subject_list()) + 1)]
 
     for test_window_size in test_window_sizes:
         for method in methods:
@@ -64,6 +66,7 @@ def plot_realistic_ranks(dataset: Dataset, resample_factor: int, data_processing
     Plot and save realistic-rank-plot
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param path: Path to save boxplot
     :param method: Specify method of results ("non-stress", "stress")

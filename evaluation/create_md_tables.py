@@ -339,7 +339,7 @@ def create_md_precision_windows(rank_method: str, average_method: str, sensor_co
 def create_md_precision_overall(results: Dict[int, Dict[str, float]], rank_method: str, average_method: str,
                                 sensor_combination: str, window: str,
                                 weightings: Dict[str, Dict[int, List[Dict[str, float]]]],
-                                best_k_parameters: Dict[str, int]) -> str:
+                                best_k_parameters: Dict[str, int], sensor_combinations: List[List[str]]) -> str:
     """
     Create text for MD-file with results of overall evaluation and best sensor-weightings
     :param results: Results with precision values (DTW-results, maximum results, random guess results)
@@ -349,8 +349,11 @@ def create_md_precision_overall(results: Dict[int, Dict[str, float]], rank_metho
     :param window: Specify best window-size e.g. 10
     :param weightings: Specify best sensor-weightings
     :param best_k_parameters: Specify best k parameters
+    :param sensor_combinations: Specify all different sensor-combinations
     :return: String with MD text
     """
+    sensor_combinations = sensor_combinations[len(sensor_combinations) - 1]
+
     text = "# Evaluation overall: \n"
     text += "* Calculated with rank-method: '" + str(rank_method) + "' \n"
     text += "* Calculated with averaging-method: '" + str(average_method) + "' \n"
@@ -370,11 +373,21 @@ def create_md_precision_overall(results: Dict[int, Dict[str, float]], rank_metho
     text += "## Sensor-weighting tables: \n"
     for method in weightings:
         text += "### Table for method: '" + str(method) + "': \n"
-        text += "| k | acc | bvp | eda | temp | \n"
-        text += "|---|---|---|---|---| \n"
+        text += "| k | "
+        for sensor in sensor_combinations:
+            text += str(sensor) + " | "
+        text += "\n"
+
+        text += "|---|"
+        for sensor in sensor_combinations:
+            text += "---|"
+        text += "\n"
+
         for k in weightings[method]:
             for weights in weightings[method][k]:
-                text += "| " + str(k) + " | " + str(weights["acc"]) + " | " + str(weights["bvp"]) + " | " + \
-                        str(weights["eda"]) + " | " + str(weights["temp"]) + " |" + "\n"
+                text += "| " + str(k) + " | "
+                for sensor in sensor_combinations:
+                    text += str(weights[sensor]) + " | "
+                text += "\n"
 
     return text

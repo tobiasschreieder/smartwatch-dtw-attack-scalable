@@ -1,9 +1,11 @@
-from preprocessing.datasets.dataset import Dataset
+from preprocessing.data_processing.data_processing import DataProcessing
+from preprocessing.datasets.dataset import Dataset, get_sensor_combinations
 from evaluation.metrics.calculate_ranks import run_calculate_ranks, realistic_rank, get_realistic_ranks_combinations
 from preprocessing.process_results import load_results
 from alignments.dtw_attacks.dtw_attack import DtwAttack
 from config import Config
 
+from itertools import product
 from typing import List, Dict, Union
 import json
 import os
@@ -11,12 +13,14 @@ import os
 cfg = Config.get()
 
 
-def calculate_precision(dataset: Dataset, resample_factor: int, subject_ids: List[int], k: int, rank_method: str,
-                        method: str, test_window_size: int) -> float:
+def calculate_precision(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,
+                        subject_ids: List[int], k: int, rank_method: str, method: str, test_window_size: int) -> float:
     """
     Calculate precision@k scores
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
+    :param dtw_attack: Specify DTW-attack
     :param subject_ids: List with subject-ids
     :param k: Specify k parameter
     :param rank_method: Specify ranking method ("rank" or "score")
@@ -26,7 +30,8 @@ def calculate_precision(dataset: Dataset, resample_factor: int, subject_ids: Lis
     """
     true_positives = 0
     for subject_id in subject_ids:
-        results = load_results(dataset=dataset, resample_factor=resample_factor, subject_id=subject_id, method=method,
+        results = load_results(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
+                               dtw_attack=dtw_attack, subject_id=subject_id, method=method,
                                test_window_size=test_window_size)
         overall_ranks, individual_ranks = run_calculate_ranks(dataset=dataset, results=results, rank_method=rank_method)
         real_rank = realistic_rank(overall_ranks=overall_ranks, subject_id=subject_id)
@@ -62,12 +67,14 @@ def calculate_precision_combinations(dataset: Dataset, realistic_ranks_comb: Dic
     return precision_comb
 
 
-def calculate_max_precision(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, k: int, step_width: float,
-                            method: str, test_window_size: int) -> Dict[str, Union[float, List[float]]]:
+def calculate_max_precision(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                            dtw_attack: DtwAttack, k: int, step_width: float, method: str, test_window_size: int) \
+        -> Dict[str, Union[float, List[float]]]:
     """
     Calculate and save maximum possible precision value with all sensor weight characteristics
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param k: Specify k for precision@k
     :param step_width: Specify step_with for weights
@@ -82,38 +89,51 @@ def calculate_max_precision(dataset: Dataset, resample_factor: int, dtw_attack: 
         :return: Calculated precision results
         """
         realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset, resample_factor=resample_factor,
-                                                                dtw_attack=dtw_attack, rank_method="max",
-                                                                combinations=sensor_combinations, method=method,
-                                                                test_window_size=test_window_size, weights=test_weights)
+                                                                data_processing=data_processing, dtw_attack=dtw_attack,
+                                                                rank_method="max", combinations=sensor_combinations,
+                                                                method=method, test_window_size=test_window_size,
+                                                                weights=test_weights)
         precision_combinations = calculate_precision_combinations(dataset=dataset,
                                                                   realistic_ranks_comb=realistic_ranks_comb, k=k)
 
         results = list()
         for c, p in precision_combinations.items():
-            results.append({"precision": p, "weights": test_weights})
+            res = {"precision": p, "weights": test_weights}
+            if res not in results:
+                results.append(res)
 
         return results
 
-    weights_list = list()
-    sensor_combinations = [["bvp", "eda", "acc", "temp"]]
+    # Get sensor-combinations
+    sensor_combinations = get_sensor_combinations(dataset=dataset, resample_factor=resample_factor,
+                                                  data_processing=data_processing)
+    sensors = sensor_combinations[len(sensor_combinations) - 1]
+
+    # Get all possible weights
     steps = int(100 / (step_width * 100))
+    weights = list()
+    for step_sensor in range(0, steps + 1):
+        weight_sensor = step_sensor / steps
+        weights.append(weight_sensor)
 
-    for step_bvp in range(0, steps):
-        weight_bvp = step_bvp / steps
-        for step_eda in range(0, steps):
-            weight_eda = step_eda / steps
-            for step_acc in range(0, steps):
-                weight_acc = step_acc / steps
-                for step_temp in range(0, steps):
-                    weight_temp = step_temp / steps
+    # Generating combinations
+    temp = product(weights, repeat=len(sensors))
 
-                    if weight_bvp + weight_eda + weight_acc + weight_temp == 1:
-                        weights = {"bvp": weight_bvp, "eda": weight_eda, "acc": weight_acc, "temp": weight_temp}
-                        weights_list.append(weights)
+    # Constructing dicts using combinations
+    all_combinations = [{key: val for (key, val) in zip(sensors, ele)} for ele in temp]
+
+    # Choose combinations with sum = 1
+    weights_list = list()
+    for comb in all_combinations:
+        weights = list(comb.values())
+        if sum(weights) == 1:
+            weights_list.append(comb)
 
     weight_precisions = list()
     for weights in weights_list:
-        weight_precisions.append(run_rank_precision_calculation(test_weights=weights)[0])
+        rank_precisions = run_rank_precision_calculation(test_weights=weights)
+        for rank_precision in rank_precisions:
+            weight_precisions.append(rank_precision)
 
     max_precision = 0
     for precision in weight_precisions:
@@ -130,7 +150,8 @@ def calculate_max_precision(dataset: Dataset, resample_factor: int, dtw_attack: 
         data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
         resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
         attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-        precision_path = os.path.join(attack_path, "precision")  # add /precision to path
+        processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
+        precision_path = os.path.join(processing_path, "precision")  # add /precision to path
         method_path = os.path.join(precision_path, str(method))  # add /method to path
         window_path = os.path.join(method_path, "window-size=" + str(test_window_size))  # add /test=X to path
         max_precision_path = os.path.join(window_path, "max-precision")  # add /max-precision to path

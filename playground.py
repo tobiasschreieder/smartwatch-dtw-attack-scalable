@@ -24,7 +24,7 @@ Example Calculations
 ------------------------------------------------------------------------------------------------------------------------
 """
 # Specify parameters
-dataset = Wesad()
+dataset = WesadGan()
 resample_factor = 1000
 data_processing = StandardProcessing()
 dtw_attack = SingleDtwAttack()
@@ -33,7 +33,7 @@ dtw_attack = SingleDtwAttack()
 start = time.perf_counter()
 
 """1. Calculate DTW-alignments and save results to /out/alignments"""
-# run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing, test_window_sizes=[2, 5, 7],
+# run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing, test_window_sizes=[2, 5],
 #                resample_factor=resample_factor, multi=5)
 
 """2. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
@@ -72,12 +72,14 @@ to /out/subject-plots"""
 # run_optimization_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
 #                             dtw_attack=dtw_attack)
 
-"""12. Calculate maximum precisions, save precision@k values as json file"""  # TODO
-# run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack)
+"""12. Calculate maximum precisions, save precision@k values as json file"""
+# run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
+#                             dtw_attack=dtw_attack)
 
 """13. Overall evaluation with (DTW-results, maximum results, random guess results), save precision@k values as
-MD-table"""  # TODO
-# run_overall_evaluation(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack, save_weightings=True)
+MD-table"""
+# run_overall_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
+#                        dtw_attack=dtw_attack, save_weightings=True)
 
 end = time.perf_counter()
 print("Runtime: " + str(round(end - start, 2)) + "s")

@@ -7,7 +7,7 @@ from evaluation.optimization.sensor_evaluation import calculate_sensor_precision
     list_to_string
 from evaluation.optimization.window_evaluation import calculate_window_precisions, get_best_window_configuration
 from preprocessing.data_processing.data_processing import DataProcessing
-from preprocessing.datasets.dataset import Dataset
+from preprocessing.datasets.dataset import Dataset, get_sensor_combinations
 from preprocessing.process_results import load_max_precision_results
 from alignments.dtw_attacks.dtw_attack import DtwAttack
 from config import Config
@@ -72,12 +72,13 @@ def calculate_best_configurations(dataset: Dataset, resample_factor: int, data_p
     return best_configurations
 
 
-def get_average_max_precision(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, average_method: str,
-                              window: int, k: int) -> float:
+def get_average_max_precision(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                              dtw_attack: DtwAttack, average_method: str, window: int, k: int) -> float:
     """
     Calculate average max-precision for specified averaging method
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param average_method: Specify averaging method ("mean" or "weighted-mean")
     :param window: Specify test-window-size
@@ -85,9 +86,11 @@ def get_average_max_precision(dataset: Dataset, resample_factor: int, dtw_attack
     :return: Average max-precision
     """
     non_stress_results = load_max_precision_results(dataset=dataset, resample_factor=resample_factor,
-                                                    dtw_attack=dtw_attack, method="non-stress", test_window_size=window,
+                                                    data_processing=data_processing, dtw_attack=dtw_attack,
+                                                    method="non-stress", test_window_size=window,
                                                     k=k)
-    stress_results = load_max_precision_results(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
+    stress_results = load_max_precision_results(dataset=dataset, resample_factor=resample_factor,
+                                                data_processing=data_processing, dtw_attack=dtw_attack,
                                                 method="stress", test_window_size=window, k=k)
 
     result = None
@@ -97,7 +100,8 @@ def get_average_max_precision(dataset: Dataset, resample_factor: int, dtw_attack
             result = round(statistics.mean([non_stress_results["precision"], stress_results["precision"]]), 3)
         # Averaging method = "weighted-mean"
         else:
-            class_distributions = get_class_distribution(dataset=dataset)
+            class_distributions = get_class_distribution(dataset=dataset, resample_factor=resample_factor,
+                                                         data_processing=data_processing)
             result = round(non_stress_results["precision"] * class_distributions["non-stress"] +
                            stress_results["precision"] * class_distributions["stress"], 3)
 
@@ -119,12 +123,13 @@ def get_random_guess_precision(dataset: Dataset, k: int) -> float:
     return result
 
 
-def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack,
-                                   k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
+def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                                   dtw_attack: DtwAttack, k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
     """
     Calculate overall evaluation precision scores (DTW-results, maximum results and random guess results)
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param k_list: List with all k's
     :return: Dictionary with results
@@ -133,8 +138,9 @@ def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, dtw_a
         k_list = [1, 3, 5]
 
     best_configuration = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor,
-                                                       dtw_attack=dtw_attack)
-    results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
+                                                       data_processing=data_processing, dtw_attack=dtw_attack)
+    results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor,
+                                          data_processing=data_processing, dtw_attack=dtw_attack,
                                           rank_method=best_configuration["rank_method"],
                                           average_method=best_configuration["class"],
                                           sensor_combination=best_configuration["sensor"], k_list=k_list)
@@ -146,6 +152,7 @@ def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, dtw_a
 
         # Calculate maximum results
         overall_results[k].setdefault("max", get_average_max_precision(dataset=dataset, resample_factor=resample_factor,
+                                                                       data_processing=data_processing,
                                                                        dtw_attack=dtw_attack,
                                                                        average_method=best_configuration["class"],
                                                                        window=best_configuration["window"], k=k))
@@ -156,18 +163,20 @@ def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, dtw_a
     return overall_results
 
 
-def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack) -> Dict[str, int]:
+def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                                dtw_attack: DtwAttack) -> Dict[str, int]:
     """
     Calculate k-parameters where precision@k == 1
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :return: Dictionary with results
     """
     amount_subjects = len(dataset.get_subject_list())
     k_list = list(range(1, amount_subjects + 1))  # List with all possible k parameters
-    results = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
-                                             k_list=k_list)
+    results = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor,
+                                             data_processing=data_processing, dtw_attack=dtw_attack, k_list=k_list)
     best_k_parameters = dict()
 
     set_method = False
@@ -186,13 +195,14 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, dtw_atta
     return best_k_parameters
 
 
-def get_best_sensor_weightings(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, test_window_size: int,
-                               methods: List[str] = None, k_list: List[int] = None) \
-        -> Dict[str, Dict[int, List[Dict[str, float]]]]:
+def get_best_sensor_weightings(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                               dtw_attack: DtwAttack, test_window_size: int, methods: List[str] = None,
+                               k_list: List[int] = None) -> Dict[str, Dict[int, List[Dict[str, float]]]]:
     """
     Calculate best sensor-weightings for specified window-size
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param test_window_size: Specify test-window-size
     :param methods: List with methods (non-stress, stress); if None: all methods are used
@@ -209,42 +219,47 @@ def get_best_sensor_weightings(dataset: Dataset, resample_factor: int, dtw_attac
         weightings.setdefault(method, dict())
         for k in k_list:
             results = load_max_precision_results(dataset=dataset, resample_factor=resample_factor,
-                                                 dtw_attack=dtw_attack, k=k, method=method,
-                                                 test_window_size=test_window_size)
+                                                 data_processing=data_processing, dtw_attack=dtw_attack, k=k,
+                                                 method=method, test_window_size=test_window_size)
             weightings[method].setdefault(k, results["weights"])
 
     return weightings
 
 
-def run_overall_evaluation(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack,
-                           save_weightings: bool = False):
+def run_overall_evaluation(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                           dtw_attack: DtwAttack, save_weightings: bool = False):
     """
     Run and save overall evaluation (DTW-results, maximum results, random guess results)
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param save_weightings: If true -> Weighting will be saved as json-file
     """
     best_configuration = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor,
-                                                       dtw_attack=dtw_attack)
+                                                       data_processing=data_processing, dtw_attack=dtw_attack)
     overall_results = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor,
-                                                     dtw_attack=dtw_attack)
-    weightings = get_best_sensor_weightings(dataset=dataset, resample_factor=resample_factor, dtw_attack=dtw_attack,
+                                                     data_processing=data_processing, dtw_attack=dtw_attack)
+    weightings = get_best_sensor_weightings(dataset=dataset, resample_factor=resample_factor,
+                                            data_processing=data_processing, dtw_attack=dtw_attack,
                                             test_window_size=best_configuration["window"])
     best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor,
-                                                    dtw_attack=dtw_attack)
+                                                    data_processing=data_processing, dtw_attack=dtw_attack)
+    sensor_combinations = get_sensor_combinations(dataset=dataset, resample_factor=resample_factor,
+                                                  data_processing=data_processing)
 
     text = [create_md_precision_overall(results=overall_results, rank_method=best_configuration["rank_method"],
                                         average_method=best_configuration["class"],
                                         sensor_combination=list_to_string(input_list=best_configuration["sensor"][0]),
                                         window=best_configuration["window"], weightings=weightings,
-                                        best_k_parameters=best_k_parameters)]
+                                        best_k_parameters=best_k_parameters, sensor_combinations=sensor_combinations)]
 
     # Save MD-File
     data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
     attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-    evaluations_path = os.path.join(attack_path, "evaluations")  # add /evaluations to path
+    processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
+    evaluations_path = os.path.join(processing_path, "evaluations")  # add /evaluations to path
     os.makedirs(evaluations_path, exist_ok=True)
 
     path_string = "SW-DTW_evaluation_overall.md"

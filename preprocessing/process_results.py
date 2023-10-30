@@ -73,12 +73,14 @@ def load_results(dataset: Dataset, resample_factor: int, data_processing: DataPr
     return reduced_results
 
 
-def load_max_precision_results(dataset: Dataset, resample_factor: int, dtw_attack: DtwAttack, method: str,
-                               test_window_size: int, k: int) -> Dict[str, Union[float, List[Dict[str, float]]]]:
+def load_max_precision_results(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                               dtw_attack: DtwAttack, method: str, test_window_size: int, k: int) \
+        -> Dict[str, Union[float, List[Dict[str, float]]]]:
     """
     Load max-precision results
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param method: Specify method
     :param test_window_size: Specify test-window-size
@@ -90,7 +92,8 @@ def load_max_precision_results(dataset: Dataset, resample_factor: int, dtw_attac
         data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
         resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
         attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-        precision_path = os.path.join(attack_path, "precision")  # add /precision to path
+        processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
+        precision_path = os.path.join(processing_path, "precision")  # add /precision to path
         method_path = os.path.join(precision_path, str(method))  # add /method to path
         window_path = os.path.join(method_path, "window-size=" + str(test_window_size))  # add /test=0.XX to path
         max_precision_path = os.path.join(window_path, "max-precision")  # add /max-precision to path

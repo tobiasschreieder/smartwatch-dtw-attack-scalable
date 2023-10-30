@@ -110,7 +110,7 @@ class WesadGan(Dataset):
             # Load data of all subjects in subject_list
             data_dict = dict()
             for i in SUBJECT_LIST:
-                subject = Subject(os.path.join(cfg.data_dir, "WESAD-GAN"), i)
+                subject = Subject(os.path.join(cfg.data_dir, "WESAD_GAN"), i)
                 data = subject.get_subject_dataframe()
                 data_dict.setdefault(i, data)
             self.data = data_dict
