@@ -7,8 +7,7 @@ from config import Config
 
 from itertools import product
 from typing import List, Dict, Union
-import json
-import os
+
 
 cfg = Config.get()
 
@@ -69,7 +68,7 @@ def calculate_precision_combinations(dataset: Dataset, realistic_ranks_comb: Dic
 
 def calculate_max_precision(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
                             dtw_attack: DtwAttack, k: int, step_width: float, method: str, test_window_size: int) \
-        -> Dict[str, Union[float, List[float]]]:
+        -> Dict[int, Dict[str, Union[float, List[float]]]]:
     """
     Calculate and save maximum possible precision value with all sensor weight characteristics
     :param dataset: Specify dataset
@@ -145,30 +144,4 @@ def calculate_max_precision(dataset: Dataset, resample_factor: int, data_process
         if precision["precision"] == max_precision:
             max_precisions["weights"].append(precision["weights"])
 
-    # Save max_precisions as json
-    try:
-        data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
-        resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-        attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-        processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
-        precision_path = os.path.join(processing_path, "precision")  # add /precision to path
-        method_path = os.path.join(precision_path, str(method))  # add /method to path
-        window_path = os.path.join(method_path, "window-size=" + str(test_window_size))  # add /test=X to path
-        max_precision_path = os.path.join(window_path, "max-precision")  # add /max-precision to path
-        os.makedirs(max_precision_path, exist_ok=True)
-
-        path_string = "SW-DTW_max-precision_" + str(method) + "_" + str(test_window_size) + "_k=" + str(k) + ".json"
-
-        with open(os.path.join(max_precision_path, path_string), "w", encoding="utf-8") as outfile:
-            json.dump(max_precisions, outfile)
-
-        print("SW-DTW max-precision saved at: " + str(path_string))
-
-    except FileNotFoundError:
-        with open("/SW-DTW_max-precision_" + str(method) + "_" + str(test_window_size) + "_k=" + str(k) + ".json",
-                  "w", encoding="utf-8") as outfile:
-            json.dump(max_precisions, outfile)
-
-        print("FileNotFoundError: results saved at working dir")
-
-    return max_precisions
+    return {k: max_precisions}

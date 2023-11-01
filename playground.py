@@ -24,17 +24,17 @@ Example Calculations
 ------------------------------------------------------------------------------------------------------------------------
 """
 # Specify parameters
-dataset = WesadGan()
+dataset = Wesad()
 resample_factor = 1000
 data_processing = StandardProcessing()
-dtw_attack = SingleDtwAttack()
+dtw_attack = MultiDtwAttack()
 
 
 start = time.perf_counter()
 
 """1. Calculate DTW-alignments and save results to /out/alignments"""
-# run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing, test_window_sizes=[2, 5],
-#                resample_factor=resample_factor, multi=5)
+run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing, test_window_sizes=[2, 5, 7],
+               resample_factor=resample_factor, multi=5)
 
 """2. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
 # run_dtw_alignments(dataset=dataset, data_processing=data_processing, resample_factor=resample_factor)
@@ -54,29 +54,15 @@ to /out/subject-plots"""
 # precision_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
 #                      dtw_attack=dtw_attack)
 
-"""7. Evaluation of rank-method; save precision@k values as MD-table"""
-# run_rank_method_evaluation(dataset=dataset, resample_factor=resample_factor)
-
-"""8. Evaluation of classes, save precision@k values as MD-table"""
-# run_class_evaluation(dataset=dataset, resample_factor=resample_factor, rank_method="score")
-
-"""9. Evaluation of sensor-combinations, save precision@k values as MD-table"""
-# run_sensor_evaluation(dataset=dataset, resample_factor=resample_factor, rank_method="score",
-#                       average_method="weighted-mean")
-
-"""10. Evaluation of windows, save precision@k values as MD-table"""
-# run_window_evaluation(dataset=dataset, resample_factor=resample_factor, rank_method="score",
-#                       average_method="weighted-mean", sensor_combination=[["bvp", "acc"]])
-
-"""11. Complete optimization evaluation, save precision@k values as MD-table"""
+"""7. Complete optimization evaluation, save precision@k values as MD-table"""
 # run_optimization_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
 #                             dtw_attack=dtw_attack)
 
-"""12. Calculate maximum precisions, save precision@k values as json file"""
+"""8. Calculate maximum precisions, save precision@k values as json file"""
 # run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
 #                             dtw_attack=dtw_attack)
 
-"""13. Overall evaluation with (DTW-results, maximum results, random guess results), save precision@k values as
+"""9. Overall evaluation with (DTW-results, maximum results, random guess results), save precision@k values as
 MD-table"""
 # run_overall_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
 #                        dtw_attack=dtw_attack, save_weightings=True)

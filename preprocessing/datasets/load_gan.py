@@ -38,7 +38,8 @@ class Subject:
         self.subject_keys = ['signal', 'label', 'subject']
         self.wrist_keys = ['ACC', 'BVP', 'EDA', 'TEMP']
 
-        self.data = pd.read_csv(os.path.join(data_path, "g" + str(subject_number) + ".csv"))
+        data = pd.read_csv(os.path.join(data_path, "1000_subj_synthetic_DGAN.csv"))
+        self.data = data[data.sid == subject_number]
         self.labels = self.data['Label']
 
     def get_subject_dataframe(self) -> pd.DataFrame:

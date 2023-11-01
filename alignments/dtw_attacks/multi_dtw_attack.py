@@ -4,7 +4,7 @@ from alignments.dtw_attacks.dtw_attack import DtwAttack
 from config import Config
 
 from joblib import Parallel, delayed
-from typing import Dict, Tuple, List, Any
+from typing import Dict, Tuple, List, Any, Union
 from dtaidistance import dtw
 import pandas as pd
 import statistics
@@ -218,41 +218,18 @@ class MultiDtwAttack(DtwAttack):
         :param methods:  List with all method that should be used -> "non-stress" / "stress" (str)
         :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
         """
-        def parallel_calculation(current_subject_id: int):
+        def parallel_calculation(current_subject_id: int) -> Dict[int, Dict[int, Dict[str, float]]]:
             """
             Run parallel calculations
             :param current_subject_id: Specify subject_id
+            :return: Dictionary with results
             """
-            results_standard = self.calculate_alignment(data_dict=data_dict, subject_id=current_subject_id,
-                                                        method=method, test_window_size=test_window_size, multi=multi,
-                                                        additional_windows=additional_windows,
-                                                        resample_factor=resample_factor)
+            result = self.calculate_alignment(data_dict=data_dict, subject_id=current_subject_id, method=method,
+                                              test_window_size=test_window_size, multi=multi,
+                                              additional_windows=additional_windows, resample_factor=resample_factor)
+            results_subject = {current_subject_id: result}
 
-            # Save results as json
-            try:
-                path = os.path.join(cfg.out_dir, dataset.name)  # add /dataset-name to path
-                path = os.path.join(path, "resample-factor=" + str(resample_factor))  # add /rs-factor= to path
-                path = os.path.join(path, self.name)  # add /dtw-attack-name to path
-                path = os.path.join(path, data_processing.name)  # add /data-processing to path
-                path = os.path.join(path, "alignments")  # add /alignments to path
-                path = os.path.join(path, str(method))  # add /method to path
-                path = os.path.join(path, "window-size=" + str(test_window_size))  # add /test=X to path
-                os.makedirs(path, exist_ok=True)
-
-                path_string_standard = "SW-DTW_results_standard_" + str(method) + "_" + str(
-                    test_window_size) + "_S" + str(current_subject_id) + ".json"
-
-                with open(os.path.join(path, path_string_standard), "w", encoding="utf-8") as outfile:
-                    json.dump(results_standard, outfile)
-
-                print("SW-DTW results saved at: " + str(os.path.join(path, path_string_standard)))
-
-            except FileNotFoundError:
-                with open("SW-DTW_results_standard_" + str(method) + "_" + str(test_window_size) + "_S" +
-                          str(current_subject_id) + ".json", "w", encoding="utf-8") as outfile:
-                    json.dump(results_standard, outfile)
-
-                print("FileNotFoundError: results saved at working dir")
+            return results_subject
 
         if subject_ids is None:
             subject_ids = dataset.get_subject_list()
@@ -274,8 +251,12 @@ class MultiDtwAttack(DtwAttack):
 
                     # Parallelization
                     with Parallel(n_jobs=n_jobs) as parallel:
-                        parallel(
+                        results = parallel(
                             delayed(parallel_calculation)(current_subject_id=subject_id) for subject_id in subject_ids)
+
+                    results_standard = dict()
+                    for res in results:
+                        results_standard.setdefault(list(res.keys())[0], list(res.values())[0])
 
                     end = time.perf_counter()
 
@@ -285,16 +266,33 @@ class MultiDtwAttack(DtwAttack):
                     attack_path = os.path.join(resample_path, self.name)
                     processing_path = os.path.join(attack_path, data_processing.name)
                     alignments_path = os.path.join(processing_path, "alignments")
+
+                    method_path = os.path.join(alignments_path, str(method))
                     runtime_path = os.path.join(alignments_path, "runtime")
                     os.makedirs(runtime_path, exist_ok=True)
+                    os.makedirs(method_path, exist_ok=True)
 
-                    file_name = "runtime_window_size=" + str(test_window_size) + ".txt"
-                    save_path = os.path.join(runtime_path, file_name)
+                    try:
+                        # Save Runtime as TXT
+                        runtime_file_name = "runtime_window_size=" + str(test_window_size) + ".txt"
+                        runtime_save_path = os.path.join(runtime_path, runtime_file_name)
 
-                    text_file = open(save_path, "w")
-                    text = "Runtime: " + str(end - start)
-                    text_file.write(text)
-                    text_file.close()
+                        text_file = open(runtime_save_path, "w")
+                        text = "Runtime: " + str(end - start)
+                        text_file.write(text)
+                        text_file.close()
+
+                        # Save results as JSON
+                        path_string_standard = "SW-DTW_results_standard_" + str(method) + "_" + str(
+                            test_window_size) + ".json"
+
+                        with open(os.path.join(method_path, path_string_standard), "w", encoding="utf-8") as outfile:
+                            json.dump(results_standard, outfile)
+
+                        print("SW-DTW results saved at: " + str(os.path.join(method_path, path_string_standard)))
+
+                    except FileNotFoundError:
+                        print("FileNotFoundError: results could not be saved!")
 
         else:
             print("Please specify valid window-sizes!")

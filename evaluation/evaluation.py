@@ -13,9 +13,10 @@ from preprocessing.process_results import load_results
 from config import Config
 
 from joblib import Parallel, delayed
-from typing import List
+from typing import List, Dict, Union
 import os
 import matplotlib.pyplot as plt
+import json
 
 
 cfg = Config.get()
@@ -36,14 +37,17 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
     :param test_window_sizes: List with all test-window-sizes
     :param step_width: Specify step-width for weights
     """
-    def run_calculation(k: int):
+    def run_calculation(k: int) -> Dict[int, Dict[str, Union[float, List[float]]]]:
         """
         Run parallel calculation of max-precision
         :param k: Specify k-parameter
+        :return Dictionary with max-precisions
         """
-        calculate_max_precision(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-                                dtw_attack=dtw_attack, k=k, step_width=step_width, method=method,
-                                test_window_size=test_window_size)
+        max_precision = calculate_max_precision(dataset=dataset, resample_factor=resample_factor,
+                                                data_processing=data_processing, dtw_attack=dtw_attack, k=k,
+                                                step_width=step_width, method=method, test_window_size=test_window_size)
+
+        return max_precision
 
     if methods is None:
         methods = dataset.get_classes()
@@ -57,7 +61,32 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
 
             # Parallelization
             with Parallel(n_jobs=n_jobs) as parallel:
-                parallel(delayed(run_calculation)(k=k) for k in k_list)
+                max_precision_results = parallel(delayed(run_calculation)(k=k) for k in k_list)
+
+            max_precisions = dict()
+            for mp in max_precision_results:
+                max_precisions.setdefault(list(mp.keys())[0], list(mp.values())[0])
+
+            # Save max_precisions as json
+            try:
+                data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
+                resample_path = os.path.join(data_path,
+                                             "resample-factor=" + str(resample_factor))  # add /rs-factor to path
+                attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
+                processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
+                precision_path = os.path.join(processing_path, "precision")  # add /precision to path
+                method_path = os.path.join(precision_path, str(method))  # add /method to path
+                os.makedirs(method_path, exist_ok=True)
+
+                path_string = "SW-DTW_max-precision_" + str(method) + "_" + str(test_window_size) + ".json"
+
+                with open(os.path.join(method_path, path_string), "w", encoding="utf-8") as outfile:
+                    json.dump(max_precisions, outfile)
+
+                print("SW-DTW max-precision saved at: " + str(path_string))
+
+            except FileNotFoundError:
+                print("FileNotFoundError: max-precisions could not be saved!")
 
 
 def plot_realistic_ranks(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,

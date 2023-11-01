@@ -39,14 +39,13 @@ def load_results(dataset: Dataset, resample_factor: int, data_processing: DataPr
         processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
         alignment_path = os.path.join(processing_path, "alignments")  # add /alignments to path
         method_path = os.path.join(alignment_path, str(method))  # add /method to path
-        window_path = os.path.join(method_path, "window-size=" + str(test_window_size))  # add /test=X to path
 
-        path_string = "SW-DTW_results_standard_" + str(method) + "_" + str(test_window_size) + "_S" + str(
-            subject_id) + ".json"
-        path = os.path.join(window_path, path_string)
+        path_string = "SW-DTW_results_standard_" + str(method) + "_" + str(test_window_size) + ".json"
+        path = os.path.join(method_path, path_string)
 
         f = open(path, "r")
-        results = json.loads(f.read())
+        results_complete = json.loads(f.read())
+        results = results_complete[str(subject_id)]
 
         # If Multi-DTW-Attack just use mean results
         if dtw_attack.get_attack_name() == MultiDtwAttack().get_attack_name():
@@ -95,14 +94,13 @@ def load_max_precision_results(dataset: Dataset, resample_factor: int, data_proc
         processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
         precision_path = os.path.join(processing_path, "precision")  # add /precision to path
         method_path = os.path.join(precision_path, str(method))  # add /method to path
-        window_path = os.path.join(method_path, "window-size=" + str(test_window_size))  # add /test=0.XX to path
-        max_precision_path = os.path.join(window_path, "max-precision")  # add /max-precision to path
 
-        file_name = "SW-DTW_max-precision_" + str(method) + "_" + str(test_window_size) + "_k=" + str(k) + ".json"
-        save_path = os.path.join(max_precision_path, file_name)
+        file_name = "SW-DTW_max-precision_" + str(method) + "_" + str(test_window_size) + ".json"
+        save_path = os.path.join(method_path, file_name)
 
         f = open(save_path, "r")
-        results = json.loads(f.read())
+        results_complete = json.loads(f.read())
+        results = results_complete[str(k)]
 
     except FileNotFoundError:
         print("FileNotFoundError: no max-precision with this configuration available")
@@ -127,11 +125,12 @@ def load_complete_alignment_results(dataset: Dataset, resample_factor: int, data
         complete_path = os.path.join(resample_path, "complete-alignments")  # add /complete to path
         processing_path = os.path.join(complete_path, data_processing.name)  # add /data-processing to path
 
-        path = os.path.join(processing_path, "SW-DTW_results_standard_complete_S" + str(subject_id) + ".json")
+        path = os.path.join(processing_path, "SW-DTW_results_standard_complete.json")
 
         f = open(path, "r")
-        results = json.loads(f.read())
+        results_complete = json.loads(f.read())
 
+        results = results_complete[str(subject_id)]
         # Calculate mean of all 3 "ACC" Sensor distances
         for i in results:
             if "acc_x" in results[i]:
