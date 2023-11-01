@@ -94,9 +94,10 @@ def load_max_precision_results(dataset: Dataset, resample_factor: int, data_proc
         processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
         precision_path = os.path.join(processing_path, "precision")  # add /precision to path
         method_path = os.path.join(precision_path, str(method))  # add /method to path
+        window_path = os.path.join(method_path, "window-size=" + str(test_window_size)) # add /window-size=X to path
 
         file_name = "SW-DTW_max-precision_" + str(method) + "_" + str(test_window_size) + ".json"
-        save_path = os.path.join(method_path, file_name)
+        save_path = os.path.join(window_path, file_name)
 
         f = open(save_path, "r")
         results_complete = json.loads(f.read())

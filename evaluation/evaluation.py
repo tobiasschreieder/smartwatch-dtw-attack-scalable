@@ -76,14 +76,15 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
                 processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
                 precision_path = os.path.join(processing_path, "precision")  # add /precision to path
                 method_path = os.path.join(precision_path, str(method))  # add /method to path
-                os.makedirs(method_path, exist_ok=True)
+                window_path = os.path.join(method_path, "window-size=" + str(test_window_size))  # add /window-size=X
+                os.makedirs(window_path, exist_ok=True)
 
                 path_string = "SW-DTW_max-precision_" + str(method) + "_" + str(test_window_size) + ".json"
 
-                with open(os.path.join(method_path, path_string), "w", encoding="utf-8") as outfile:
+                with open(os.path.join(window_path, path_string), "w", encoding="utf-8") as outfile:
                     json.dump(max_precisions, outfile)
 
-                print("SW-DTW max-precision saved at: " + str(path_string))
+                print("SW-DTW max-precision saved at: " + str(os.path.join(window_path, path_string)))
 
             except FileNotFoundError:
                 print("FileNotFoundError: max-precisions could not be saved!")
