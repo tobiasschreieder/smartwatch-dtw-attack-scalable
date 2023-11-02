@@ -18,7 +18,7 @@ cfg = Config.get()
 
 
 def get_class_distribution(dataset: Dataset, resample_factor: int, data_processing: DataProcessing) \
-        -> Dict[str, float]:
+        -> Dict[str, Dict[str, float]]:
     """
     Get proportions of baseline, stress and amusement data (mean over all subjects)
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
@@ -41,10 +41,19 @@ def get_class_distribution(dataset: Dataset, resample_factor: int, data_processi
         non_stress_proportions.append(round(non_stress_length / subject_length, 2))
         stress_proportions.append(round(stress_length / subject_length, 2))
 
-    non_stress_proportion = round(statistics.mean(non_stress_proportions), 2)
-    stress_proportion = round(statistics.mean(stress_proportions), 2)
+    non_stress_mean = round(statistics.mean(non_stress_proportions), 2)
+    stress_mean = round(statistics.mean(stress_proportions), 2)
 
-    return {"non-stress": non_stress_proportion, "stress": stress_proportion}
+    non_stress_min = round(min(non_stress_proportions), 2)
+    stress_min = round(min(stress_proportions), 2)
+
+    non_stress_max = round(max(non_stress_proportions), 2)
+    stress_max = round(max(stress_proportions), 2)
+
+    non_stress_dict = {"mean": non_stress_mean, "min": non_stress_min, "max": non_stress_max}
+    stress_dict = {"mean": stress_mean, "min": stress_min, "max": stress_max}
+
+    return {"non-stress": non_stress_dict, "stress": stress_dict}
 
 
 def calculate_class_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
@@ -181,7 +190,7 @@ def calculate_average_class_precisions(dataset: Dataset, resample_factor: int, d
         weighted_average_precision = 0
         for method in results[k]:
             average_precision_list.append(results[k][method])
-            weighted_average_precision += results[k][method] * class_distribution[method]
+            weighted_average_precision += results[k][method] * class_distribution[method]["mean"]
         average_results[k] = round(statistics.mean(average_precision_list), 3)
         weighted_average_results[k] = round(weighted_average_precision, 3)
 

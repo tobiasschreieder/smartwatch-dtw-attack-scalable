@@ -27,7 +27,7 @@ class SingleDtwAttack(DtwAttack):
 
         self.name = "Single-DTW-Attack"
         self.windows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 50, 100, 500, 1000, 10000]
-        self.windows = [2, 5, 7]
+        self.windows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     def get_windows(self) -> List[int]:
         """

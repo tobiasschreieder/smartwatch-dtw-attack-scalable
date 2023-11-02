@@ -4,7 +4,7 @@ from alignments.dtw_attacks.dtw_attack import DtwAttack
 from config import Config
 
 from joblib import Parallel, delayed
-from typing import Dict, Tuple, List, Any, Union
+from typing import Dict, Tuple, List, Any
 from dtaidistance import dtw
 import pandas as pd
 import statistics
@@ -27,7 +27,7 @@ class MultiDtwAttack(DtwAttack):
         super().__init__()
 
         self.name = "Multi-DTW-Attack"
-        self.windows = [2, 5, 7]
+        self.windows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     def get_windows(self) -> List[int]:
         """
