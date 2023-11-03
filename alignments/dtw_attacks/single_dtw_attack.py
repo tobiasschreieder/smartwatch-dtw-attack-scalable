@@ -11,6 +11,7 @@ import os
 import json
 import time
 
+
 cfg = Config.get()
 
 
@@ -28,13 +29,6 @@ class SingleDtwAttack(DtwAttack):
         self.name = "Single-DTW-Attack"
         self.windows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 50, 100, 500, 1000, 10000]
         self.windows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30]
-
-    def get_windows(self) -> List[int]:
-        """
-        Get test-window-sizes
-        :return: List with all test-window-sizes
-        """
-        return self.windows
 
     @classmethod
     def create_subject_data(cls, data_dict: Dict[int, pd.DataFrame], method: str, test_window_size: int,
@@ -226,7 +220,7 @@ class SingleDtwAttack(DtwAttack):
             return results_subject
 
         if subject_ids is None:
-            subject_ids = dataset.get_subject_list()
+            subject_ids = dataset.subject_list
         if methods is None:
             methods = dataset.get_classes()
 
@@ -254,7 +248,7 @@ class SingleDtwAttack(DtwAttack):
                     end = time.perf_counter()
 
                     # Save runtime as txt file
-                    dataset_path = os.path.join(cfg.out_dir, dataset.name)
+                    dataset_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
                     resample_path = os.path.join(dataset_path, "resample-factor=" + str(resample_factor))
                     attack_path = os.path.join(resample_path, self.name)
                     processing_path = os.path.join(attack_path, data_processing.name)

@@ -102,8 +102,8 @@ def get_average_max_precision(dataset: Dataset, resample_factor: int, data_proce
         else:
             class_distributions = get_class_distribution(dataset=dataset, resample_factor=resample_factor,
                                                          data_processing=data_processing)
-            result = round(non_stress_results["precision"] * class_distributions["non-stress"] +
-                           stress_results["precision"] * class_distributions["stress"], 3)
+            result = round(non_stress_results["precision"] * class_distributions["non-stress"]["mean"] +
+                           stress_results["precision"] * class_distributions["stress"]["mean"], 3)
 
     except KeyError:
         print("SW-DTW_max-precision for k=" + str(k) + " not available!")
@@ -118,7 +118,7 @@ def get_random_guess_precision(dataset: Dataset, k: int) -> float:
     :param k: Specify k parameter
     :return: Random guess precision
     """
-    amount_subjects = len(dataset.get_subject_list())
+    amount_subjects = len(dataset.subject_list)
     result = round(k / amount_subjects, 3)
     return result
 
@@ -173,7 +173,7 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     :param dtw_attack: Specify DTW-attack
     :return: Dictionary with results
     """
-    amount_subjects = len(dataset.get_subject_list())
+    amount_subjects = len(dataset.subject_list)
     k_list = list(range(1, amount_subjects + 1))  # List with all possible k parameters
     results = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor,
                                              data_processing=data_processing, dtw_attack=dtw_attack, k_list=k_list)
@@ -255,11 +255,11 @@ def run_overall_evaluation(dataset: Dataset, resample_factor: int, data_processi
                                         best_k_parameters=best_k_parameters, sensor_combinations=sensor_combinations)]
 
     # Save MD-File
-    data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
-    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-    attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-    processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
-    evaluations_path = os.path.join(processing_path, "evaluations")  # add /evaluations to path
+    data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+    attack_path = os.path.join(resample_path, dtw_attack.name)
+    processing_path = os.path.join(attack_path, data_processing.name)
+    evaluations_path = os.path.join(processing_path, "evaluations")
     os.makedirs(evaluations_path, exist_ok=True)
 
     path_string = "SW-DTW_evaluation_overall.md"

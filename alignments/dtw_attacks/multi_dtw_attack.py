@@ -29,13 +29,6 @@ class MultiDtwAttack(DtwAttack):
         self.name = "Multi-DTW-Attack"
         self.windows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-    def get_windows(self) -> List[int]:
-        """
-        Get test-window-sizes
-        :return: List with all test-window-sizes
-        """
-        return self.windows
-
     @classmethod
     def create_subject_data(cls, data_dict: Dict[int, pd.DataFrame], method: str, test_window_size: int,
                             subject_id: int, multi: int = 3, additional_windows: int = 1000, resample_factor: int = 1) \
@@ -232,7 +225,7 @@ class MultiDtwAttack(DtwAttack):
             return results_subject
 
         if subject_ids is None:
-            subject_ids = dataset.get_subject_list()
+            subject_ids = dataset.subject_list
         if methods is None:
             methods = dataset.get_classes()
 
@@ -261,7 +254,7 @@ class MultiDtwAttack(DtwAttack):
                     end = time.perf_counter()
 
                     # Save runtime as txt file
-                    dataset_path = os.path.join(cfg.out_dir, dataset.name)
+                    dataset_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
                     resample_path = os.path.join(dataset_path, "resample-factor=" + str(resample_factor))
                     attack_path = os.path.join(resample_path, self.name)
                     processing_path = os.path.join(attack_path, data_processing.name)

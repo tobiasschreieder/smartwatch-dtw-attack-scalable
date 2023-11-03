@@ -20,10 +20,10 @@ def plot_subject_data(dataset: Dataset, resample_factor: int, data_processing: D
     """
     data_dict = dataset.load_dataset(resample_factor=resample_factor, data_processing=data_processing)  # read data_dict
 
-    data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
-    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-    eda_path = os.path.join(resample_path, "eda")  # add /eda to path
-    processing_path = os.path.join(eda_path, data_processing.name)  # add /data-processing to path
+    data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+    eda_path = os.path.join(resample_path, "eda")
+    processing_path = os.path.join(eda_path, data_processing.name)
     os.makedirs(processing_path, exist_ok=True)
 
     print("Plotting subject-data! PNG-File saved at " + processing_path)
@@ -53,7 +53,7 @@ def plot_distance_heatmap(dataset: Dataset, resample_factor: int, data_processin
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     """
-    subject_ids = dataset.get_subject_list()
+    subject_ids = dataset.subject_list
     data = dict()
     data_array = list()
 
@@ -84,10 +84,10 @@ def plot_distance_heatmap(dataset: Dataset, resample_factor: int, data_processin
     plt.rc("font", size=24)
 
     # Save heatmap as png
-    data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
-    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-    eda_path = os.path.join(resample_path, "eda")  # add /eda to path
-    processing_path = os.path.join(eda_path, data_processing.name)  # add /data-processing to path
+    data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+    eda_path = os.path.join(resample_path, "eda")
+    processing_path = os.path.join(eda_path, data_processing.name)
     os.makedirs(processing_path, exist_ok=True)
 
     try:

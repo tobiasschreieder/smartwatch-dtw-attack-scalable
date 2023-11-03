@@ -144,7 +144,7 @@ def create_md_precision_combinations(dataset: Dataset, resample_factor: int, dat
     :return: String with MD text
     """
     if subject_ids is None:
-        subject_ids = dataset.get_subject_list()
+        subject_ids = dataset.subject_list
 
     text = "### Precision@k table combinations (method: " + rank_method + ")" + "\n"
 

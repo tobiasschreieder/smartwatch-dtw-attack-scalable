@@ -6,12 +6,14 @@ import itertools
 
 
 class Dataset:
-    def __init__(self):
+    def __init__(self, dataset_size: int):
         """
         Generate, preprocess and load dataset
+        :param dataset_size: Specify amount of subjects in dataset
         """
         self.name = "DATASET"
         self.data = Dict[int, pd.DataFrame]
+        self.subject_list = []
         pass
 
     def load_dataset(self, data_processing: DataProcessing, resample_factor: int = None) -> Dict[int, pd.DataFrame]:
@@ -22,20 +24,6 @@ class Dataset:
         :return: Dictionary with preprocessed data
         """
         return {0: pd.DataFrame()}
-
-    def get_dataset_name(self) -> str:
-        """
-        Get name of dataset
-        :return: String with name
-        """
-        return self.name
-
-    def get_subject_list(self) -> List[int]:
-        """
-        Get List with all available subjects
-        :return: List with subject-ids
-        """
-        return []
 
     def get_classes(self) -> List[str]:
         """

@@ -39,7 +39,7 @@ def calculate_complete_subject_alignment(data_dict: Dict[int, pd.DataFrame], dat
     """
     results_standard = dict()
     subject_data_1 = create_full_subject_data(data_dict=data_dict, subject_id=subject_id)
-    subject_list = dataset.get_subject_list()
+    subject_list = dataset.subject_list
 
     for subject in subject_list:
         subject_data_2 = create_full_subject_data(data_dict=data_dict, subject_id=subject)
@@ -80,7 +80,7 @@ def run_dtw_alignments(dataset: Dataset, data_processing: DataProcessing, resamp
         return results_subject
 
     if subject_ids is None:
-        subject_ids = dataset.get_subject_list()
+        subject_ids = dataset.subject_list
 
     data_dict = dataset.load_dataset(resample_factor=resample_factor, data_processing=data_processing)
 
@@ -93,10 +93,10 @@ def run_dtw_alignments(dataset: Dataset, data_processing: DataProcessing, resamp
     for res in results:
         results_standard.setdefault(list(res.keys())[0], list(res.values())[0])
 
-    data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
-    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-    complete_path = os.path.join(resample_path, "Complete-Alignments")  # add /complete to path
-    processing_path = os.path.join(complete_path, data_processing.name)  # add /data-processing to path
+    data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+    complete_path = os.path.join(resample_path, "Complete-Alignments")
+    processing_path = os.path.join(complete_path, data_processing.name)
     os.makedirs(processing_path, exist_ok=True)
 
     try:

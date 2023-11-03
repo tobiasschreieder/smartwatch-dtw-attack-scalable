@@ -52,9 +52,9 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
     if methods is None:
         methods = dataset.get_classes()
     if test_window_sizes is None:
-        test_window_sizes = dtw_attack.get_windows()
+        test_window_sizes = dtw_attack.windows
     if k_list is None:
-        k_list = [i for i in range(1, len(dataset.get_subject_list()) + 1)]
+        k_list = [i for i in range(1, len(dataset.subject_list) + 1)]
 
     for test_window_size in test_window_sizes:
         for method in methods:
@@ -69,14 +69,13 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
 
             # Save max_precisions as json
             try:
-                data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
-                resample_path = os.path.join(data_path,
-                                             "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-                attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-                processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
-                precision_path = os.path.join(processing_path, "precision")  # add /precision to path
-                method_path = os.path.join(precision_path, str(method))  # add /method to path
-                window_path = os.path.join(method_path, "window-size=" + str(test_window_size))  # add /window-size=X
+                data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+                resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+                attack_path = os.path.join(resample_path, dtw_attack.name)
+                processing_path = os.path.join(attack_path, data_processing.name)
+                precision_path = os.path.join(processing_path, "precision")
+                method_path = os.path.join(precision_path, str(method))
+                window_path = os.path.join(method_path, "window-size=" + str(test_window_size))
                 os.makedirs(window_path, exist_ok=True)
 
                 path_string = "SW-DTW_max-precision_" + str(method) + "_" + str(test_window_size) + ".json"
@@ -136,15 +135,15 @@ def subject_evaluation(dataset: Dataset, resample_factor: int, data_processing: 
     if methods is None:
         methods = dataset.get_classes()
     if subject_list is None:
-        subject_list = dataset.get_subject_list()
+        subject_list = dataset.subject_list
     if test_window_sizes is None:
-        test_window_sizes = dtw_attack.get_windows()
+        test_window_sizes = dtw_attack.windows
 
-    data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
-    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-    attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-    processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
-    subject_plot_path = os.path.join(processing_path, "subject-plots")  # add /subject-plots to path
+    data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+    attack_path = os.path.join(resample_path, dtw_attack.name)
+    processing_path = os.path.join(attack_path, data_processing.name)
+    subject_plot_path = os.path.join(processing_path, "subject-plots")
 
     for method in methods:
         for test_window_size in test_window_sizes:
@@ -214,18 +213,18 @@ def precision_evaluation(dataset: Dataset, resample_factor: int, data_processing
     if methods is None:
         methods = dataset.get_classes()
     if test_window_sizes is None:
-        test_window_sizes = dtw_attack.get_windows()
+        test_window_sizes = dtw_attack.windows
     if k_list is None:
         k_list = [1, 3, 5]
 
     sensor_combinations = get_sensor_combinations(dataset=dataset, resample_factor=resample_factor,
                                                   data_processing=data_processing)
 
-    data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
-    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-    attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-    processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
-    precision_path = os.path.join(processing_path, "precision")  # add /precision to path
+    data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+    attack_path = os.path.join(resample_path, dtw_attack.name)
+    processing_path = os.path.join(attack_path, data_processing.name)
+    precision_path = os.path.join(processing_path, "precision")
 
     for method in methods:
         for test_window_size in test_window_sizes:

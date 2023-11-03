@@ -12,11 +12,6 @@ from scipy import signal
 cfg = Config.get()
 
 
-# List with all available subject_ids
-start = 1001
-end = 1015
-SUBJECT_LIST = [x for x in range(start, end + 1)]
-
 # All available classes
 CLASSES = ["non-stress", "stress"]
 
@@ -38,7 +33,7 @@ class Subject:
         self.subject_keys = ['signal', 'label', 'subject']
         self.wrist_keys = ['ACC', 'BVP', 'EDA', 'TEMP']
 
-        data = pd.read_csv(os.path.join(data_path, "100_subj_synthetic_CGAN.csv"))
+        data = pd.read_csv(os.path.join(data_path, "1000_subj_synthetic_CGAN.csv"))
         self.data = data[data.sid == subject_number]
         self.labels = self.data['Label']
 
@@ -88,37 +83,49 @@ class Subject:
         return df
 
 
-class WesadGan(Dataset):
+class WesadCGan(Dataset):
     """
-    Class to generate, load and preprocess WESAD-GAN dataset
+    Class to generate, load and preprocess WESAD-cGAN dataset
     """
-    def __init__(self):
+    def __init__(self, dataset_size: int):
         """
-        Try to load WESAD-GAN dataset (wesad_gan_data.pickle); if not available -> generate wesad_gan_data.pickle
+        Try to load WESAD-GAN dataset (wesad_cgan_data.pickle); if not available -> generate wesad_cgan_data.pickle
+        :param dataset_size: Specify amount of subjects in dataset
         """
-        super().__init__()
+        super().__init__(dataset_size=dataset_size)
 
-        self.name = "WESAD-GAN"
+        self.name = "WESAD-cGAN"
+
+        # List with all available subject_ids
+        start = 1001
+        if dataset_size > 1000:
+            print("Size of the data set is too large! Set size to 1000.")
+            dataset_size = 1000
+        end = start + dataset_size
+        subject_list = [x for x in range(start, end)]
+        self.subject_list = subject_list
+
+        filename = "wesad_cgan_data_" + str(dataset_size) + ".pickle"
 
         try:
-            with open(os.path.join(cfg.data_dir, 'wesad_gan_data.pickle'), "rb") as f:
+            with open(os.path.join(cfg.data_dir, filename), "rb") as f:
                 self.data = pickle.load(f)
 
         except FileNotFoundError:
             print("FileNotFoundError: Invalid directory structure! Please make sure that /dataset exists.")
-            print("Creating wesad_gan_data.pickle from WESAD-GAN dataset.")
+            print("Creating wesad_cgan_data.pickle from WESAD-cGAN dataset.")
 
             # Load data of all subjects in subject_list
             data_dict = dict()
-            for i in SUBJECT_LIST:
-                subject = Subject(os.path.join(cfg.data_dir, "WESAD_GAN"), i)
+            for i in self.subject_list:
+                subject = Subject(os.path.join(cfg.data_dir, "WESAD_cGAN"), i)
                 data = subject.get_subject_dataframe()
                 data_dict.setdefault(i, data)
             self.data = data_dict
 
             # Save data_dict
             try:
-                with open(os.path.join(cfg.data_dir, 'wesad_gan_data.pickle'), 'wb') as f:
+                with open(os.path.join(cfg.data_dir, filename), 'wb') as f:
                     pickle.dump(data_dict, f)
 
             except FileNotFoundError:
@@ -161,20 +168,6 @@ class WesadGan(Dataset):
         data_dict = data_processing.process_data(data_dict=data_dict)
 
         return data_dict
-
-    def get_dataset_name(self) -> str:
-        """
-        Get name of dataset
-        :return: String with name
-        """
-        return self.name
-
-    def get_subject_list(self) -> List[int]:
-        """
-        Get list with all available subjects
-        :return: List with subject-ids
-        """
-        return SUBJECT_LIST
 
     def get_classes(self) -> List[str]:
         """

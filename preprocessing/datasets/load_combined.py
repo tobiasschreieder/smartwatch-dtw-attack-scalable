@@ -2,7 +2,7 @@ from preprocessing.data_processing.data_processing import DataProcessing
 from preprocessing.data_processing.standard_processing import StandardProcessing
 from preprocessing.datasets.dataset import Dataset
 from preprocessing.datasets.load_wesad import Wesad
-from preprocessing.datasets.load_gan import WesadGan
+from preprocessing.datasets.load_dgan import WesadDGan
 from config import Config
 
 from typing import Dict, List
@@ -16,21 +16,22 @@ cfg = Config.get()
 
 
 # List with all available subject_ids
-SUBJECT_LIST = Wesad().get_subject_list() + WesadGan().get_subject_list()
+SUBJECT_LIST = Wesad(dataset_size=15).subject_list + WesadDGan(dataset_size=100).subject_list
 
 # All available classes
-CLASSES = Wesad().get_classes()
+CLASSES = Wesad(dataset_size=15).get_classes()
 
 
 class WesadCombined(Dataset):
     """
     Class to generate, load and preprocess Combined WESAD dataset (WESAD + WESAD-GAN)
     """
-    def __init__(self):
+    def __init__(self, dataset_size: int):
         """
         Try to load preprocessed WESAD dataset (wesad_data.pickle); if not available -> generate wesad_data.pickle
+        :param dataset_size: Specify amount of subjects in dataset
         """
-        super().__init__()
+        super().__init__(dataset_size=dataset_size)
 
         self.name = "WESAD-Combined"
 
@@ -43,8 +44,10 @@ class WesadCombined(Dataset):
             print("Creating wesad_combined_data.pickle from WESAD and WESAD-GAN dataset.")
 
             # Load data of all subjects in subject_list
-            wesad_data = Wesad().load_dataset(resample_factor=1, data_processing=StandardProcessing())
-            wesad_gan_data = WesadGan().load_dataset(resample_factor=1, data_processing=StandardProcessing())
+            wesad_data = Wesad(dataset_size=dataset_size).load_dataset(resample_factor=1,
+                                                                       data_processing=StandardProcessing())
+            wesad_gan_data = WesadDGan(dataset_size=dataset_size).load_dataset(resample_factor=1,
+                                                                               data_processing=StandardProcessing())
             data_dict = wesad_data
             for k, v in wesad_gan_data.items():
                 data_dict.setdefault(k, v)
@@ -95,20 +98,6 @@ class WesadCombined(Dataset):
         data_dict = data_processing.process_data(data_dict=data_dict)
 
         return data_dict
-
-    def get_dataset_name(self) -> str:
-        """
-        Get name of dataset
-        :return: String with name
-        """
-        return self.name
-
-    def get_subject_list(self) -> List[int]:
-        """
-        Get list with all available subjects
-        :return: List with subject-ids
-        """
-        return SUBJECT_LIST
 
     def get_classes(self) -> List[str]:
         """

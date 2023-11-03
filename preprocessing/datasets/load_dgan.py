@@ -1,5 +1,5 @@
-from preprocessing.datasets.dataset import Dataset
 from preprocessing.data_processing.data_processing import DataProcessing
+from preprocessing.datasets.dataset import Dataset
 from config import Config
 
 from typing import Dict, List
@@ -18,7 +18,7 @@ CLASSES = ["non-stress", "stress"]
 
 class Subject:
     """
-    Subject of the WESAD dataset.
+    Subject of the WESAD-dGAN dataset.
     Subject Class inspired by: https://github.com/WJMatthew/WESAD
     Preprocessing based on Gil-Martin et al. 2022: Human stress detection with wearable sensors using convolutional
     neural networks: https://ieeexplore.ieee.org/document/9669993
@@ -31,54 +31,51 @@ class Subject:
         """
         self.name = f'S{subject_number}'
         self.subject_keys = ['signal', 'label', 'subject']
-        self.signal_keys = ['chest', 'wrist']
-        self.chest_keys = ['ACC', 'ECG', 'EMG', 'EDA', 'Temp', 'Resp']
         self.wrist_keys = ['ACC', 'BVP', 'EDA', 'TEMP']
 
-        with open(os.path.join(data_path, self.name) + '/' + self.name + '.pkl', 'rb') as file:
-            self.data = pickle.load(file, encoding='latin1')
-        self.labels = self.data['label']
-
-    def get_wrist_data(self) -> pd.DataFrame:
-        """
-        Method to get wrist data
-        :return: Data measured by the E4 Empatica
-        """
-        data = self.data['signal']['wrist']
-        return data
+        data = pd.read_csv(os.path.join(data_path, "1000_subj_synthetic_DGAN.csv"))
+        self.data = data[data.sid == subject_number]
+        self.labels = self.data['Label']
 
     def get_subject_dataframe(self) -> pd.DataFrame:
         """
         Preprocess and upsample WESAD dataset
         :return: Dataframe with the preprocessed data of the subject
         """
-        wrist_data = self.get_wrist_data()
-        bvp_signal = wrist_data['BVP'][:, 0]
-        eda_signal = wrist_data['EDA'][:, 0]
-        acc_x_signal = wrist_data['ACC'][:, 0]
-        acc_y_signal = wrist_data['ACC'][:, 1]
-        acc_z_signal = wrist_data['ACC'][:, 2]
-        temp_signal = wrist_data['TEMP'][:, 0]
+        wrist_data = self.data
+        bvp_signal = wrist_data['BVP']
+        eda_signal = wrist_data['EDA']
+        acc_x_signal = wrist_data['ACC_x']
+        acc_y_signal = wrist_data['ACC_y']
+        acc_z_signal = wrist_data['ACC_z']
+        temp_signal = wrist_data['TEMP']
 
-        # Upsampling data to match BVP data sampling rate using fourier method as described in Paper/dataset
-        eda_upsampled = signal.resample(eda_signal, len(bvp_signal))
-        temp_upsampled = signal.resample(temp_signal, len(bvp_signal))
-        acc_x_upsampled = signal.resample(acc_x_signal, len(bvp_signal))
-        acc_y_upsampled = signal.resample(acc_y_signal, len(bvp_signal))
-        acc_z_upsampled = signal.resample(acc_z_signal, len(bvp_signal))
-        label_df = pd.DataFrame(self.labels, columns=['label'])
-        label_df.index = [(1 / 700) * i for i in range(len(label_df))]  # 700 is the sampling rate of the label
+        # Upsampling data to match data sampling rate of 64 Hz using fourier method as described in Paper/dataset
+        bvp_upsampled = signal.resample(bvp_signal, (len(bvp_signal) * 64))
+        eda_upsampled = signal.resample(eda_signal, (len(bvp_signal) * 64))
+        temp_upsampled = signal.resample(temp_signal, (len(bvp_signal) * 64))
+        acc_x_upsampled = signal.resample(acc_x_signal, (len(bvp_signal) * 64))
+        acc_y_upsampled = signal.resample(acc_y_signal, (len(bvp_signal) * 64))
+        acc_z_upsampled = signal.resample(acc_z_signal, (len(bvp_signal) * 64))
+
+        # Upsampling labels to 64 Hz
+        upsampled_labels = list()
+        for label in self.labels:
+            for i in range(0, 64):
+                upsampled_labels.append(label)
+
+        label_df = pd.DataFrame(upsampled_labels, columns=["label"])
+        label_df.index = [(1 / 64) * i for i in range(len(label_df))]  # 64 is the sampling rate of the label
         label_df.index = pd.to_datetime(label_df.index, unit='s')
 
-        data_arrays = zip(bvp_signal, eda_upsampled, acc_x_upsampled, acc_y_upsampled, acc_z_upsampled, temp_upsampled)
+        data_arrays = zip(bvp_upsampled, eda_upsampled, acc_x_upsampled, acc_y_upsampled, acc_z_upsampled,
+                          temp_upsampled)
         df = pd.DataFrame(data=data_arrays, columns=['bvp', 'eda', 'acc_x', 'acc_y', 'acc_z', 'temp'])
+
         df.index = [(1 / 64) * i for i in range(len(df))]  # 64 = sampling rate of BVP
         df.index = pd.to_datetime(df.index, unit='s')
         df = df.join(label_df)
         df['label'] = df['label'].fillna(method='ffill')
-        df.reset_index(drop=True, inplace=True)
-        df.drop(df[df['label'].isin([0.0, 4.0, 5.0, 6.0, 7.0])].index, inplace=True)
-        df['label'] = df['label'].replace([1.0, 2.0, 3.0], [0, 1, 0])
         df.reset_index(drop=True, inplace=True)
 
         # Normalize data (no train test leakage since data frame per subject)
@@ -86,41 +83,41 @@ class Subject:
         return df
 
 
-class Wesad(Dataset):
+class WesadDGan(Dataset):
     """
-    Class to generate, load and preprocess WESAD dataset
+    Class to generate, load and preprocess WESAD-dGAN dataset
     """
     def __init__(self, dataset_size: int):
         """
-        Try to load preprocessed WESAD dataset (wesad_data.pickle); if not available -> generate wesad_data.pickle
+        Try to load WESAD-dGAN dataset (wesad_dgan_data.pickle); if not available -> generate wesad_gan_data.pickle
         :param dataset_size: Specify amount of subjects in dataset
         """
         super().__init__(dataset_size=dataset_size)
 
-        self.name = "WESAD"
+        self.name = "WESAD-dGAN"
 
         # List with all available subject_ids
-        subject_list = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17]
-        if dataset_size > 15:
-            print("Size of the data set is too large! Set size to 15.")
-            dataset_size = 15
-        subject_list = subject_list[:dataset_size]
+        start = 1001
+        if dataset_size > 1000:
+            print("Size of the data set is too large! Set size to 1000.")
+            dataset_size = 1000
+        end = start + dataset_size
+        subject_list = [x for x in range(start, end)]
         self.subject_list = subject_list
 
-        filename = "wesad_data_" + str(dataset_size) + ".pickle"
-
+        filename = "wesad_dgan_data_" + str(dataset_size) + ".pickle"
         try:
             with open(os.path.join(cfg.data_dir, filename), "rb") as f:
                 self.data = pickle.load(f)
 
         except FileNotFoundError:
             print("FileNotFoundError: Invalid directory structure! Please make sure that /dataset exists.")
-            print("Creating wesad_data.pickle from WESAD dataset.")
+            print("Creating wesad_dgan_data.pickle from WESAD-dGAN dataset.")
 
             # Load data of all subjects in subject_list
             data_dict = dict()
             for i in self.subject_list:
-                subject = Subject(os.path.join(cfg.data_dir, "WESAD"), i)
+                subject = Subject(os.path.join(cfg.data_dir, "WESAD_dGAN"), i)
                 data = subject.get_subject_dataframe()
                 data_dict.setdefault(i, data)
             self.data = data_dict

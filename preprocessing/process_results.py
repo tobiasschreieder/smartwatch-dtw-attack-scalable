@@ -26,19 +26,19 @@ def load_results(dataset: Dataset, resample_factor: int, data_processing: DataPr
     :param test_window_size: Specify test-window-size
     :return: Dictionary with results
     """
-    subject_ids = dataset.get_subject_list()
+    subject_ids = dataset.subject_list
     subject_ids_string = list()
     for subject in subject_ids:
         subject_ids_string.append(str(subject))
 
     reduced_results = dict()
     try:
-        data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
-        resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-        attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-        processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
-        alignment_path = os.path.join(processing_path, "alignments")  # add /alignments to path
-        method_path = os.path.join(alignment_path, str(method))  # add /method to path
+        data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+        resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+        attack_path = os.path.join(resample_path, dtw_attack.name)
+        processing_path = os.path.join(attack_path, data_processing.name)
+        alignment_path = os.path.join(processing_path, "alignments")
+        method_path = os.path.join(alignment_path, str(method))
 
         path_string = "SW-DTW_results_standard_" + str(method) + "_" + str(test_window_size) + ".json"
         path = os.path.join(method_path, path_string)
@@ -48,7 +48,7 @@ def load_results(dataset: Dataset, resample_factor: int, data_processing: DataPr
         results = results_complete[str(subject_id)]
 
         # If Multi-DTW-Attack just use mean results
-        if dtw_attack.get_attack_name() == MultiDtwAttack().get_attack_name():
+        if dtw_attack.name == MultiDtwAttack().name:
             multi_dtw_attack_results = dict()
             for subject in results:
                 multi_dtw_attack_results.setdefault(subject, results[subject]["mean"])
@@ -88,13 +88,13 @@ def load_max_precision_results(dataset: Dataset, resample_factor: int, data_proc
     """
     results = dict()
     try:
-        data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
-        resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-        attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-        processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
-        precision_path = os.path.join(processing_path, "precision")  # add /precision to path
-        method_path = os.path.join(precision_path, str(method))  # add /method to path
-        window_path = os.path.join(method_path, "window-size=" + str(test_window_size)) # add /window-size=X to path
+        data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+        resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+        attack_path = os.path.join(resample_path, dtw_attack.name)
+        processing_path = os.path.join(attack_path, data_processing.name)
+        precision_path = os.path.join(processing_path, "precision")
+        method_path = os.path.join(precision_path, str(method))
+        window_path = os.path.join(method_path, "window-size=" + str(test_window_size))
 
         file_name = "SW-DTW_max-precision_" + str(method) + "_" + str(test_window_size) + ".json"
         save_path = os.path.join(window_path, file_name)
@@ -121,10 +121,10 @@ def load_complete_alignment_results(dataset: Dataset, resample_factor: int, data
     """
     average_results = dict()
     try:
-        data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
-        resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-        complete_path = os.path.join(resample_path, "complete-alignments")  # add /complete to path
-        processing_path = os.path.join(complete_path, data_processing.name)  # add /data-processing to path
+        data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+        resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+        complete_path = os.path.join(resample_path, "complete-alignments")
+        processing_path = os.path.join(complete_path, data_processing.name)
 
         path = os.path.join(processing_path, "SW-DTW_results_standard_complete.json")
 

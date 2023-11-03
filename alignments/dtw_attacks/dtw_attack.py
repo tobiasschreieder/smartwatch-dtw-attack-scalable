@@ -78,17 +78,3 @@ class DtwAttack:
         :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
         """
         pass
-
-    def get_windows(self) -> List[int]:
-        """
-        Get test-window-sizes
-        :return: List with all test-window-sizes
-        """
-        return self.windows
-
-    def get_attack_name(self) -> str:
-        """
-        Get name of DTW-attack
-        :return: String with name
-        """
-        return self.name

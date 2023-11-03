@@ -61,26 +61,26 @@ def calculate_sensor_precisions(dataset: Dataset, resample_factor: int, data_pro
     sensor_combinations = get_sensor_combinations(dataset=dataset, resample_factor=resample_factor,
                                                   data_processing=data_processing)
     classes = dataset.get_classes()  # Get all classes
-    test_window_sizes = dtw_attack.get_windows()  # Get all test-window-sizes
+    test_window_sizes = dtw_attack.windows  # Get all test-window-sizes
 
     # List with all k for precision@k that should be considered
-    complete_k_list = [i for i in range(1, len(dataset.get_subject_list()) + 1)]
+    complete_k_list = [i for i in range(1, len(dataset.subject_list) + 1)]
     # Get class distributions
     class_distributions = get_class_distribution(dataset=dataset, resample_factor=resample_factor,
                                                  data_processing=data_processing)
 
     if subject_ids is None:
-        subject_ids = dataset.get_subject_list()
+        subject_ids = dataset.subject_list
 
     # Specify paths
-    data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
-    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-    attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-    processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
-    evaluations_path = os.path.join(processing_path, "evaluations")  # add /evaluations to path
-    results_path = os.path.join(evaluations_path, "results")  # add /results to path
+    data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+    attack_path = os.path.join(resample_path, dtw_attack.name)
+    processing_path = os.path.join(attack_path, data_processing.name)
+    evaluations_path = os.path.join(processing_path, "evaluations")
+    results_path = os.path.join(evaluations_path, "results")
     os.makedirs(results_path, exist_ok=True)
-    path_string = ("SW-DTW_sensor-results_" + dataset.get_dataset_name() + "_" + str(resample_factor) + ".json")
+    path_string = ("SW-DTW_sensor-results_" + dataset.name + "_" + str(resample_factor) + ".json")
 
     # Try to load existing results
     try:
@@ -170,7 +170,7 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     :param average_method: Specify class averaging-method ("mean" or "weighted-mean)
     :return: Dictionary with results
     """
-    amount_subjects = len(dataset.get_subject_list())
+    amount_subjects = len(dataset.subject_list)
     k_list = list(range(1, amount_subjects + 1))  # List with all possible k parameters
     results = calculate_sensor_precisions(dataset=dataset, resample_factor=resample_factor,
                                           data_processing=data_processing, dtw_attack=dtw_attack, k_list=k_list,
@@ -263,11 +263,11 @@ def run_sensor_evaluation(dataset: Dataset, resample_factor: int, data_processin
                                         best_sensors=best_sensors, best_k_parameters=best_k_parameters)]
 
     # Save MD-File
-    data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
-    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-    attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-    processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
-    evaluations_path = os.path.join(processing_path, "evaluations")  # add /evaluations to path
+    data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+    resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+    attack_path = os.path.join(resample_path, dtw_attack.name)
+    processing_path = os.path.join(attack_path, data_processing.name)
+    evaluations_path = os.path.join(processing_path, "evaluations")
     os.makedirs(evaluations_path, exist_ok=True)
 
     path_string = "SW-DTW_evaluation_sensors.md"

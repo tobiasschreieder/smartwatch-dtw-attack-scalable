@@ -24,7 +24,7 @@ def run_dtw_attack(dtw_attack: DtwAttack, dataset: Dataset, resample_factor: int
     :param methods: List with all method that should be used -> "non-stress" / "stress" (str)
     :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
     """
-    if dtw_attack.get_attack_name() == SingleDtwAttack().get_attack_name():
+    if dtw_attack.name == SingleDtwAttack().name:
         print("Starting Single-DTW-Attack!")
         single_dtw_attack = SingleDtwAttack()
         single_dtw_attack.run_calculations(dataset=dataset, test_window_sizes=test_window_sizes,
@@ -32,7 +32,7 @@ def run_dtw_attack(dtw_attack: DtwAttack, dataset: Dataset, resample_factor: int
                                            additional_windows=additional_windows, n_jobs=n_jobs, methods=methods,
                                            subject_ids=subject_ids)
 
-    elif dtw_attack.get_attack_name() == MultiDtwAttack().get_attack_name():
+    elif dtw_attack.name == MultiDtwAttack().name:
         print("Starting Multi-DTW-Attack!")
         multi_dtw_attack = MultiDtwAttack()
         multi_dtw_attack.run_calculations(dataset=dataset, test_window_sizes=test_window_sizes,

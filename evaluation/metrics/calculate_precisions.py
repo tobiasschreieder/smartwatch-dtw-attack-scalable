@@ -52,7 +52,7 @@ def calculate_precision_combinations(dataset: Dataset, realistic_ranks_comb: Dic
     :param k: Specify parameter k for precision@k
     :return: Dictionary with precision values for combinations
     """
-    subject_list = dataset.get_subject_list()
+    subject_list = dataset.subject_list
     precision_comb = dict()
     for i in realistic_ranks_comb:
         true_positives = 0

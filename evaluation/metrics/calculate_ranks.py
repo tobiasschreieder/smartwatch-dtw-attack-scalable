@@ -23,7 +23,7 @@ def calculate_ranks_1(dataset: Dataset, results: Dict[str, Dict[str, float]]) \
     :param results: Dictionary with results
     :return: Tuple with Dictionaries of overall_results and rank_results
     """
-    subject_list = dataset.get_subject_list()
+    subject_list = dataset.subject_list
 
     result_lists = dict()
     for i in results:
@@ -70,7 +70,7 @@ def calculate_ranks_2(dataset: Dataset, results: Dict[str, Dict[str, float]]) \
     :param results: Dictionary with results
     :return: Tuple with Dictionaries of overall_results and rank_results
     """
-    subject_list = dataset.get_subject_list()
+    subject_list = dataset.subject_list
 
     result_lists = dict()
     for i in results:
@@ -167,7 +167,7 @@ def get_realistic_ranks(dataset: Dataset, resample_factor: int, data_processing:
     :return: List with sorted realistic ranks
     """
     if subject_ids is None:
-        subject_ids = dataset.get_subject_list()
+        subject_ids = dataset.subject_list
 
     real_ranks = list()
     for subject in subject_ids:
@@ -191,7 +191,7 @@ def calculate_ranks_combinations_1(dataset: Dataset, results: Dict[str, Dict[str
     :param combination: Sensor combination
     :return: Dictionary with rank results
     """
-    subject_list = dataset.get_subject_list()
+    subject_list = dataset.subject_list
 
     result_lists = dict()
     for i in results:
@@ -243,7 +243,7 @@ def calculate_ranks_combinations_2(dataset: Dataset, results: Dict[str, Dict[str
     :param combination: Sensor combinations
     :return: Dictionary with rank results
     """
-    subject_list = dataset.get_subject_list()
+    subject_list = dataset.subject_list
 
     result_lists = dict()
     for i in results:
@@ -273,7 +273,7 @@ def calculate_ranks_combinations_3(dataset: Dataset, results: Dict[str, Dict[str
     :param weights: List with weights
     :return: Dictionary with rank results
     """
-    subject_list = dataset.get_subject_list()
+    subject_list = dataset.subject_list
 
     result_lists = dict()
     for i in results:
@@ -356,16 +356,16 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
     if weights is None:
         weights = dict()
     if subject_ids is None:
-        subject_ids = dataset.get_subject_list()
+        subject_ids = dataset.subject_list
 
     # Rank-method == "rank" or "score":
     if rank_method != "max":
         # Specify paths
-        data_path = os.path.join(cfg.out_dir, dataset.get_dataset_name())  # add /dataset to path
-        resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))  # add /rs-factor to path
-        attack_path = os.path.join(resample_path, dtw_attack.get_attack_name())  # add /attack-name to path
-        processing_path = os.path.join(attack_path, data_processing.name)  # add /data-processing to path
-        precision_path = os.path.join(processing_path, "precision")  # add /precision to path
+        data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+        resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+        attack_path = os.path.join(resample_path, dtw_attack.name)
+        processing_path = os.path.join(attack_path, data_processing.name)
+        precision_path = os.path.join(processing_path, "precision")
         method_path = os.path.join(precision_path, method)
         window_path = os.path.join(method_path, "window-size=" + str(test_window_size))
         os.makedirs(window_path, exist_ok=True)
