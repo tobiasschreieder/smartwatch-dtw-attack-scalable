@@ -27,14 +27,14 @@ Example Calculations
 dataset = WesadGan()
 resample_factor = 1000
 data_processing = StandardProcessing()
-dtw_attack = SingleDtwAttack()
+dtw_attack = MultiDtwAttack()
 
 
 start = time.perf_counter()
 
 """1. Calculate DTW-alignments and save results to /out/alignments"""
-# run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing, test_window_sizes=[5, 10],
-#                resample_factor=resample_factor, multi=3)
+# run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing, test_window_sizes=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+#                  resample_factor=resample_factor, multi=3)
 
 """2. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
 # run_dtw_alignments(dataset=dataset, data_processing=data_processing, resample_factor=resample_factor)

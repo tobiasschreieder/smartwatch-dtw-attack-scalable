@@ -135,7 +135,7 @@ def calculate_sensor_precisions(dataset: Dataset, resample_factor: int, data_pro
                     else:
                         for method in classes:
                             precision_class_list.append(window_results_dict[test_window_size][k][method][sensor] *
-                                                        class_distributions[method])
+                                                        class_distributions[method]["mean"])
                         precision_k_list.append(sum(precision_class_list))
 
                 results[k].setdefault(sensor, round(statistics.mean(precision_k_list), 3))

@@ -113,7 +113,7 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_pro
                     precision_class_list = list()
                     for method in classes:
                         precision_class_list.append(window_results_dict[test_window_size][k][method] *
-                                                    class_distributions[method])
+                                                    class_distributions[method]["mean"])
                     results[k].setdefault(test_window_size, round(sum(precision_class_list), 3))
 
         # Save interim results as JSON-File

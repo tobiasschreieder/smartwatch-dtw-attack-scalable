@@ -14,7 +14,7 @@ cfg = Config.get()
 
 # List with all available subject_ids
 start = 1001
-end = 1100
+end = 1015
 SUBJECT_LIST = [x for x in range(start, end + 1)]
 
 # All available classes
@@ -38,7 +38,7 @@ class Subject:
         self.subject_keys = ['signal', 'label', 'subject']
         self.wrist_keys = ['ACC', 'BVP', 'EDA', 'TEMP']
 
-        data = pd.read_csv(os.path.join(data_path, "1000_subj_synthetic_DGAN.csv"))
+        data = pd.read_csv(os.path.join(data_path, "100_subj_synthetic_CGAN.csv"))
         self.data = data[data.sid == subject_number]
         self.labels = self.data['Label']
 
