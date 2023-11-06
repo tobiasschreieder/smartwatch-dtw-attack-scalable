@@ -24,7 +24,7 @@ cfg = Config.get()
 
 def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
                                 dtw_attack: DtwAttack, n_jobs: int = -1, k_list: List[int] = None, methods: List = None,
-                                test_window_sizes: List = None, step_width: float = 0.1):
+                                test_window_sizes: List = None, step_width: float = 0.2):
     """
     Run calculations of maximum-precisions for specified k's, methods and test-window-sizes
     :param dataset: Specify dataset
@@ -49,10 +49,14 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
 
         return max_precision
 
+    best_configurations = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor,
+                                                        data_processing=data_processing, dtw_attack=dtw_attack,
+                                                        standardized_evaluation=True)
+
     if methods is None:
         methods = dataset.get_classes()
     if test_window_sizes is None:
-        test_window_sizes = dtw_attack.windows
+        test_window_sizes = [best_configurations["window"]]
     if k_list is None:
         k_list = [i for i in range(1, len(dataset.subject_list) + 1)]
 
@@ -258,13 +262,14 @@ def precision_evaluation(dataset: Dataset, resample_factor: int, data_processing
 
 
 def run_optimization_evaluation(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                dtw_attack: DtwAttack, k_list: List[int] = None):
+                                dtw_attack: DtwAttack, standardized_evaluation: bool = True, k_list: List[int] = None):
     """
     Run complete optimizations evaluation, Evaluation of: rank-methods, classes, sensors, windows
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param standardized_evaluation: If True -> Use rank-method = "score" and average-method = "weighted-mean"
     :param k_list: Specify k-parameters
     """
     # Specify k parameters
@@ -273,7 +278,8 @@ def run_optimization_evaluation(dataset: Dataset, resample_factor: int, data_pro
 
     # Get best configurations
     best_configurations = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor,
-                                                        data_processing=data_processing, dtw_attack=dtw_attack)
+                                                        data_processing=data_processing, dtw_attack=dtw_attack,
+                                                        standardized_evaluation=standardized_evaluation)
 
     # Evaluation of rank-method
     run_rank_method_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
@@ -291,5 +297,6 @@ def run_optimization_evaluation(dataset: Dataset, resample_factor: int, data_pro
     # Evaluation of windows
     run_window_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
                           dtw_attack=dtw_attack, rank_method=best_configurations["rank_method"],
-                          average_method=best_configurations["class"], sensor_combination=best_configurations["sensor"],
+                          average_method=best_configurations["class"],
+                          sensor_combination=best_configurations["sensor"],
                           k_list=k_list)

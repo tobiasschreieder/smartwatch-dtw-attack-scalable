@@ -233,7 +233,7 @@ def create_md_precision_classes(rank_method: str, results: Dict[int, Dict[str, f
     text += "## Evaluation per Class: \n"
     text += "### Precision@k table: \n"
     text += "| k | non-stress | stress |" + "\n"
-    text += "|---|---|---|---|" + "\n"
+    text += "|---|---|---|" + "\n"
 
     for k in results:
         text += "| " + str(k) + " | " + str(results[k]["non-stress"]) + " | " + str(results[k]["stress"]) + " |" + "\n"

@@ -22,14 +22,15 @@ cfg = Config.get()
 
 
 def calculate_best_configurations(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                  dtw_attack: DtwAttack, k_list: List[int] = None) \
-        -> Dict[str, Union[str, int, List[List[str]]]]:
+                                  dtw_attack: DtwAttack, standardized_evaluation: bool = True,
+                                  k_list: List[int] = None) -> Dict[str, Union[str, int, List[List[str]]]]:
     """
     Calculate the best configurations for rank-method, classes, sensors and windows
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param standardized_evaluation: If True -> Use rank-method = "score" and average-method = "weighted-mean"
     :param k_list: Specify k-parameters
     :return: Dictionary with best configurations
     """
@@ -37,21 +38,25 @@ def calculate_best_configurations(dataset: Dataset, resample_factor: int, data_p
     if k_list is None:
         k_list = [1, 3, 5]
 
-    # Best rank-method
-    results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor,
-                                               data_processing=data_processing, dtw_attack=dtw_attack,
-                                               k_list=k_list)
-    best_rank_method = get_best_rank_method_configuration(res=results)
+    if standardized_evaluation:
+        best_rank_method = "score"
+        best_class_method = "weighted-mean"
+    else:
+        # Best rank-method
+        results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor,
+                                                   data_processing=data_processing, dtw_attack=dtw_attack,
+                                                   k_list=k_list)
+        best_rank_method = get_best_rank_method_configuration(res=results)
 
-    # Best class
-    average_results, weighted_average_results = calculate_average_class_precisions(dataset=dataset,
-                                                                                   resample_factor=resample_factor,
-                                                                                   data_processing=data_processing,
-                                                                                   dtw_attack=dtw_attack,
-                                                                                   rank_method=best_rank_method,
-                                                                                   k_list=k_list)
-    best_class_method = get_best_class_configuration(average_res=average_results,
-                                                     weighted_average_res=weighted_average_results)
+        # Best class
+        average_results, weighted_average_results = calculate_average_class_precisions(dataset=dataset,
+                                                                                       resample_factor=resample_factor,
+                                                                                       data_processing=data_processing,
+                                                                                       dtw_attack=dtw_attack,
+                                                                                       rank_method=best_rank_method,
+                                                                                       k_list=k_list)
+        best_class_method = get_best_class_configuration(average_res=average_results,
+                                                         weighted_average_res=weighted_average_results)
 
     # Best sensors
     results = calculate_sensor_precisions(dataset=dataset, resample_factor=resample_factor,
