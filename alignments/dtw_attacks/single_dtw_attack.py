@@ -27,8 +27,8 @@ class SingleDtwAttack(DtwAttack):
         super().__init__()
 
         self.name = "Single-DTW-Attack"
-        self.windows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 50, 100, 500, 1000, 10000]
         self.windows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 31, 32, 33, 34, 35, 36]
+        self.windows = [34]
 
     @classmethod
     def create_subject_data(cls, data_dict: Dict[int, pd.DataFrame], method: str, test_window_size: int,

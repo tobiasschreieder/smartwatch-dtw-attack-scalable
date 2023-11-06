@@ -148,3 +148,34 @@ def load_complete_alignment_results(dataset: Dataset, resample_factor: int, data
         print("FileNotFoundError: no results with this configuration available")
 
     return average_results
+
+
+def load_best_sensor_weightings(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
+                                dtw_attack: DtwAttack, dataset_size: int = 15):
+    """
+    Load best sensor-weightings
+    :param dataset: Specify dataset
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param data_processing: Specify type of data-processing
+    :param dtw_attack: Specify DTW-attack
+    :param dataset_size: Specify amount of subjects in dataset
+    :return: Dictionary with sensor-weightings
+    """
+    weightings = {}
+    try:
+        data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(dataset_size))
+        resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+        attack_path = os.path.join(resample_path, dtw_attack.name)
+        processing_path = os.path.join(attack_path, data_processing.name)
+        evaluation_path = os.path.join(processing_path, "evaluations")
+
+        file_name = "SW-DTW_evaluation_weightings.json"
+        save_path = os.path.join(evaluation_path, file_name)
+
+        f = open(save_path, "r")
+        weightings = json.loads(f.read())
+
+    except FileNotFoundError:
+        print("FileNotFoundError: no evaluation-weightings with this configuration available")
+
+    return weightings

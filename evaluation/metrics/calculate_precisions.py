@@ -1,7 +1,7 @@
 from preprocessing.data_processing.data_processing import DataProcessing
 from preprocessing.datasets.dataset import Dataset, get_sensor_combinations
 from evaluation.metrics.calculate_ranks import run_calculate_ranks, realistic_rank, get_realistic_ranks_combinations
-from preprocessing.process_results import load_results
+from preprocessing.process_results import load_results, load_best_sensor_weightings
 from alignments.dtw_attacks.dtw_attack import DtwAttack
 from config import Config
 
@@ -67,8 +67,8 @@ def calculate_precision_combinations(dataset: Dataset, realistic_ranks_comb: Dic
 
 
 def calculate_max_precision(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                            dtw_attack: DtwAttack, k: int, step_width: float, method: str, test_window_size: int) \
-        -> Dict[int, Dict[str, Union[float, List[float]]]]:
+                            dtw_attack: DtwAttack, k: int, step_width: float, method: str, test_window_size: int,
+                            use_existing_weightings: bool) -> Dict[int, Dict[str, Union[float, List[float]]]]:
     """
     Calculate and save maximum possible precision value with all sensor weight characteristics
     :param dataset: Specify dataset
@@ -79,6 +79,7 @@ def calculate_max_precision(dataset: Dataset, resample_factor: int, data_process
     :param step_width: Specify step_with for weights
     :param method: Specify method of alignments
     :param test_window_size: Specify test-window-size of alignments
+    :param use_existing_weightings: If True -> Load weightings from dataset with 15 subjects
     :return: Maximum-precision
     """
     def run_rank_precision_calculation(test_weights: Dict[str, float]):
@@ -108,25 +109,33 @@ def calculate_max_precision(dataset: Dataset, resample_factor: int, data_process
                                                   data_processing=data_processing)
     sensors = sensor_combinations[len(sensor_combinations) - 1]
 
-    # Get all possible weights
-    steps = int(100 / (step_width * 100))
-    weights = list()
-    for step_sensor in range(0, steps + 1):
-        weight_sensor = step_sensor / steps
-        weights.append(weight_sensor)
+    # If True: Read sensor-weightings from dataset with 15 subjects
+    if use_existing_weightings:
+        weights_list = load_best_sensor_weightings(dataset=dataset, resample_factor=resample_factor,
+                                                   data_processing=data_processing, dtw_attack=dtw_attack,
+                                                   dataset_size=15)[method]["1"]
 
-    # Generating combinations
-    temp = product(weights, repeat=len(sensors))
+    # Calculate all possible sensor-weightings
+    else:
+        # Get all possible weights
+        steps = int(100 / (step_width * 100))
+        weights = list()
+        for step_sensor in range(0, steps + 1):
+            weight_sensor = step_sensor / steps
+            weights.append(weight_sensor)
 
-    # Constructing dicts using combinations
-    all_combinations = [{key: val for (key, val) in zip(sensors, ele)} for ele in temp]
+        # Generating combinations
+        temp = product(weights, repeat=len(sensors))
 
-    # Choose combinations with sum = 1
-    weights_list = list()
-    for comb in all_combinations:
-        weights = list(comb.values())
-        if sum(weights) == 1:
-            weights_list.append(comb)
+        # Constructing dicts using combinations
+        all_combinations = [{key: val for (key, val) in zip(sensors, ele)} for ele in temp]
+
+        # Choose combinations with sum = 1
+        weights_list = list()
+        for comb in all_combinations:
+            weights = list(comb.values())
+            if sum(weights) == 1:
+                weights_list.append(comb)
 
     weight_precisions = list()
     for weights in weights_list:

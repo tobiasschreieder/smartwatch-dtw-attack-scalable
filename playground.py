@@ -20,18 +20,18 @@ Example Calculations
 ------------------------------------------------------------------------------------------------------------------------
 """
 # Specify parameters
-dataset = Wesad(dataset_size=15)
+dataset = WesadCGan(dataset_size=1000)
 resample_factor = 1000
 data_processing = StandardProcessing()
-dtw_attack = MultiDtwAttack()
+dtw_attack = SingleDtwAttack()
 
 
 start = time.perf_counter()
 
 """1. Calculate DTW-alignments and save results to /out/alignments"""
-# run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing,
-#                test_window_sizes=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-#                resample_factor=resample_factor, multi=3)
+run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing,
+               test_window_sizes=[34],
+               resample_factor=resample_factor, multi=3)
 
 """2. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
 # run_dtw_alignments(dataset=dataset, data_processing=data_processing, resample_factor=resample_factor)
@@ -52,17 +52,17 @@ to /out/subject-plots"""
 #                      dtw_attack=dtw_attack)
 
 """7. Complete optimization evaluation, save precision@k values as MD-table"""
-# run_optimization_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-#                             dtw_attack=dtw_attack)
+run_optimization_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
+                            dtw_attack=dtw_attack)
 
 """8. Calculate maximum precisions, save precision@k values as json file"""
-# run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-#                             dtw_attack=dtw_attack)
+run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
+                            dtw_attack=dtw_attack, use_existing_weightings=True)
 
 """9. Overall evaluation with (DTW-results, maximum results, random guess results), save precision@k values as
 MD-table"""
-# run_overall_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-#                        dtw_attack=dtw_attack, save_weightings=True)
+run_overall_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
+                       dtw_attack=dtw_attack, save_weightings=True)
 
 end = time.perf_counter()
 print("Runtime: " + str(round(end - start, 2)) + "s")

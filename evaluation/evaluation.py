@@ -23,14 +23,16 @@ cfg = Config.get()
 
 
 def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                dtw_attack: DtwAttack, n_jobs: int = -1, k_list: List[int] = None, methods: List = None,
-                                test_window_sizes: List = None, step_width: float = 0.2):
+                                dtw_attack: DtwAttack, use_existing_weightings: bool, n_jobs: int = -1,
+                                k_list: List[int] = None, methods: List = None, test_window_sizes: List = None,
+                                step_width: float = 0.2):
     """
     Run calculations of maximum-precisions for specified k's, methods and test-window-sizes
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param use_existing_weightings: If True -> Load weightings from dataset with 15 subjects
     :param n_jobs: Number of processes to use (parallelization)
     :param k_list: List with all k parameter
     :param methods: List with all methods ("non-stress", "stress")
@@ -45,7 +47,8 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
         """
         max_precision = calculate_max_precision(dataset=dataset, resample_factor=resample_factor,
                                                 data_processing=data_processing, dtw_attack=dtw_attack, k=k,
-                                                step_width=step_width, method=method, test_window_size=test_window_size)
+                                                step_width=step_width, method=method, test_window_size=test_window_size,
+                                                use_existing_weightings=use_existing_weightings)
 
         return max_precision
 
