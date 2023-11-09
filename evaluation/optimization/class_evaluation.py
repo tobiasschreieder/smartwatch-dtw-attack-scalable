@@ -17,6 +17,7 @@ import json
 
 
 cfg = Config.get()
+random.seed(1)
 
 
 def get_class_distribution(dataset: Dataset, resample_factor: int, data_processing: DataProcessing) \

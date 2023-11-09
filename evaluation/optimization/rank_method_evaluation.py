@@ -16,6 +16,7 @@ import json
 
 
 cfg = Config.get()
+random.seed(1)
 
 
 def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,

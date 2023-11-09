@@ -17,6 +17,7 @@ import json
 
 
 cfg = Config.get()
+random.seed(1)
 
 
 def list_to_string(input_list: List[str]) -> str:
