@@ -25,13 +25,14 @@ dataset = Wesad(dataset_size=15)
 resample_factor = 1000
 data_processing = StandardProcessing()
 dtw_attack = SlicingDtwAttack()
+result_selection_method = "mean"
 
 
 start = time.perf_counter()
 
 """1. Calculate DTW-alignments and save results to /out/alignments"""
 # run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing,
-#                test_window_sizes=[1, 2, 3, 36], resample_factor=resample_factor, multi=3)
+#                test_window_sizes=[12, 24, 36], resample_factor=resample_factor, multi=3)
 
 """2. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
 # run_dtw_alignments(dataset=dataset, data_processing=data_processing, resample_factor=resample_factor)
@@ -45,24 +46,25 @@ start = time.perf_counter()
 """5. Evaluate DTW-alignment results per subject; save MD-tables with distance and rank results and realistic-rank-plots
 to /out/subject-plots"""
 # subject_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-#                    dtw_attack=dtw_attack)
+#                    dtw_attack=dtw_attack, result_selection_method=result_selection_method)
 
 """6. Evaluation DTW-alignment results overall mit precision@k; save MD-tables with precision values"""
 # precision_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-#                      dtw_attack=dtw_attack)
+#                      dtw_attack=dtw_attack, result_selection_method=result_selection_method)
 
 """7. Complete optimization evaluation, save precision@k values as MD-table"""
 # run_optimization_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-#                             dtw_attack=dtw_attack)
+#                             dtw_attack=dtw_attack, result_selection_method=result_selection_method)
 
 """8. Calculate maximum precisions, save precision@k values as json file"""
 # run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-#                             dtw_attack=dtw_attack, use_existing_weightings=True)
+#                             dtw_attack=dtw_attack, result_selection_method=result_selection_method,
+#                             use_existing_weightings=False)
 
 """9. Overall evaluation with (DTW-results, maximum results, random guess results), save precision@k values as
 MD-table"""
 # run_overall_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-#                        dtw_attack=dtw_attack, save_weightings=True)
+#                        dtw_attack=dtw_attack, result_selection_method=result_selection_method, save_weightings=True)
 
 end = time.perf_counter()
 print("Runtime: " + str(round(end - start, 2)) + "s")

@@ -8,6 +8,7 @@ from typing import Dict, Tuple, List, Any
 from dtaidistance import dtw
 import pandas as pd
 import math
+import statistics
 import os
 import json
 import time
@@ -28,6 +29,7 @@ class SlicingDtwAttack(DtwAttack):
 
         self.name = "Slicing-DTW-Attack"
         self.windows = [i for i in range(1, 37)]
+        self.windows = [12, 24, 36]
 
     @classmethod
     def create_subject_data(cls, data_dict: Dict[int, pd.DataFrame], method: str, test_window_size: int,
@@ -197,12 +199,15 @@ class SlicingDtwAttack(DtwAttack):
         # Calculate average distances
         for subject in results_standard:
             results_standard[subject].setdefault("mean", dict())
+            results_standard[subject].setdefault("min", dict())
             for sensor in results_standard[subject][0]:
                 sensor_results = list()
                 for train_slice in results_standard[subject]:
-                    if train_slice != "mean":
+                    if train_slice != "mean" and train_slice != "min":
                         sensor_results.append(results_standard[subject][train_slice][sensor])
-                results_standard[subject]["mean"].setdefault(sensor, round(min(sensor_results), 4))
+
+                results_standard[subject]["mean"].setdefault(sensor, round(statistics.mean(sensor_results), 4))
+                results_standard[subject]["min"].setdefault(sensor, round(min(sensor_results), 4))
 
         return results_standard
 

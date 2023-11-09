@@ -2,6 +2,8 @@ from preprocessing.data_processing.data_processing import DataProcessing
 from preprocessing.datasets.dataset import Dataset
 from preprocessing.process_results import load_results
 from alignments.dtw_attacks.dtw_attack import DtwAttack
+from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
+from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack
 from config import Config
 
 from typing import List, Dict, Tuple, Any
@@ -152,14 +154,16 @@ def realistic_rank(overall_ranks: Dict[str, int], subject_id: int) -> int:
 
 
 def get_realistic_ranks(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,
-                        rank_method: str, method: str, test_window_size: int, subject_ids: List[int] = None) \
-        -> List[int]:
+                        result_selection_method: str, rank_method: str, method: str, test_window_size: int,
+                        subject_ids: List[int] = None) -> List[int]:
     """
     Get list with sorted realistic ranks
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
+    SlicingDTWAttack ("min" or "mean)
     :param rank_method: Specify ranking method ("rank" or "score")
     :param method: Specify method of results ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
@@ -172,8 +176,8 @@ def get_realistic_ranks(dataset: Dataset, resample_factor: int, data_processing:
     real_ranks = list()
     for subject in subject_ids:
         results = load_results(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-                               dtw_attack=dtw_attack, subject_id=subject, method=method,
-                               test_window_size=test_window_size)
+                               dtw_attack=dtw_attack, result_selection_method=result_selection_method,
+                               subject_id=subject, method=method, test_window_size=test_window_size)
         overall_ranks, individual_ranks = run_calculate_ranks(dataset=dataset, results=results, rank_method=rank_method)
 
         real_rank = realistic_rank(overall_ranks, subject)
@@ -336,15 +340,18 @@ def run_calculate_ranks_combinations(dataset: Dataset, results: Dict[str, Dict[s
 
 
 def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                     dtw_attack: DtwAttack, rank_method: str, combinations: List[List[str]],
-                                     method: str, test_window_size: int, subject_ids: List[int] = None,
-                                     weights: Dict[str, float] = None) -> Dict[str, List[int]]:
+                                     dtw_attack: DtwAttack, result_selection_method: str, rank_method: str,
+                                     combinations: List[List[str]], method: str, test_window_size: int,
+                                     subject_ids: List[int] = None, weights: Dict[str, float] = None) \
+        -> Dict[str, List[int]]:
     """
     Get realistic ranks for sensor combination results
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
+    SlicingDTWAttack ("min" or "mean)
     :param rank_method: Choose ranking method ("rank", "score", "max")
     :param combinations: Specify sensor combinations
     :param method: Specify DTW-method ("non-stress", "stress")
@@ -365,6 +372,8 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
         resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
         attack_path = os.path.join(resample_path, dtw_attack.name)
         processing_path = os.path.join(attack_path, data_processing.name)
+        if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+            processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
         precision_path = os.path.join(processing_path, "precision")
         method_path = os.path.join(precision_path, method)
         window_path = os.path.join(method_path, "window-size=" + str(test_window_size))
@@ -386,7 +395,8 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
 
                     results = load_results(dataset=dataset, resample_factor=resample_factor,
                                            data_processing=data_processing, dtw_attack=dtw_attack,
-                                           subject_id=subject_id, method=method, test_window_size=test_window_size)
+                                           result_selection_method=result_selection_method, subject_id=subject_id,
+                                           method=method, test_window_size=test_window_size)
                     overall_ranks_comb = run_calculate_ranks_combinations(dataset=dataset, results=results,
                                                                           rank_method=rank_method,
                                                                           combinations=combinations, weights=weights)
@@ -410,8 +420,8 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
         realistic_ranks_comb = dict()
         for subject_id in subject_ids:
             results = load_results(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-                                   dtw_attack=dtw_attack, subject_id=subject_id, method=method,
-                                   test_window_size=test_window_size)
+                                   dtw_attack=dtw_attack, result_selection_method=result_selection_method,
+                                   subject_id=subject_id, method=method, test_window_size=test_window_size)
             overall_ranks_comb = run_calculate_ranks_combinations(dataset=dataset, results=results,
                                                                   rank_method=rank_method,
                                                                   combinations=combinations, weights=weights)

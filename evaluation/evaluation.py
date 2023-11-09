@@ -1,4 +1,6 @@
 from alignments.dtw_attacks.dtw_attack import DtwAttack
+from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
+from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack
 from evaluation.metrics.calculate_precisions import calculate_max_precision
 from evaluation.metrics.calculate_ranks import run_calculate_ranks, get_realistic_ranks
 from evaluation.create_md_tables import create_md_distances, create_md_ranks, create_md_precision_combinations
@@ -23,15 +25,17 @@ cfg = Config.get()
 
 
 def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                dtw_attack: DtwAttack, use_existing_weightings: bool, n_jobs: int = -1,
-                                k_list: List[int] = None, methods: List = None, test_window_sizes: List = None,
-                                step_width: float = 0.2):
+                                dtw_attack: DtwAttack, result_selection_method: str, use_existing_weightings: bool,
+                                n_jobs: int = -1, k_list: List[int] = None, methods: List = None,
+                                test_window_sizes: List = None, step_width: float = 0.2):
     """
     Run calculations of maximum-precisions for specified k's, methods and test-window-sizes
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
+    SlicingDTWAttack ("min" or "mean)
     :param use_existing_weightings: If True -> Load weightings from dataset with 15 subjects
     :param n_jobs: Number of processes to use (parallelization)
     :param k_list: List with all k parameter
@@ -46,7 +50,8 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
         :return Dictionary with max-precisions
         """
         max_precision = calculate_max_precision(dataset=dataset, resample_factor=resample_factor,
-                                                data_processing=data_processing, dtw_attack=dtw_attack, k=k,
+                                                data_processing=data_processing, dtw_attack=dtw_attack,
+                                                result_selection_method=result_selection_method, k=k,
                                                 step_width=step_width, method=method, test_window_size=test_window_size,
                                                 use_existing_weightings=use_existing_weightings)
 
@@ -54,6 +59,7 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
 
     best_configurations = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor,
                                                         data_processing=data_processing, dtw_attack=dtw_attack,
+                                                        result_selection_method=result_selection_method,
                                                         standardized_evaluation=True)
 
     if methods is None:
@@ -80,6 +86,9 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
                 resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
                 attack_path = os.path.join(resample_path, dtw_attack.name)
                 processing_path = os.path.join(attack_path, data_processing.name)
+                if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+                    processing_path = os.path.join(processing_path,
+                                                   "result-selection-method=" + result_selection_method)
                 precision_path = os.path.join(processing_path, "precision")
                 method_path = os.path.join(precision_path, str(method))
                 window_path = os.path.join(method_path, "window-size=" + str(test_window_size))
@@ -97,22 +106,26 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
 
 
 def plot_realistic_ranks(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,
-                         path: os.path, method: str, test_window_size: int):
+                         result_selection_method: str, path: os.path, method: str, test_window_size: int):
     """
     Plot and save realistic-rank-plot
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
+    SlicingDTWAttack ("min" or "mean)
     :param path: Path to save boxplot
     :param method: Specify method of results ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
     """
     real_ranks_1 = get_realistic_ranks(dataset=dataset, resample_factor=resample_factor,
-                                       data_processing=data_processing, dtw_attack=dtw_attack, rank_method="rank",
+                                       data_processing=data_processing, dtw_attack=dtw_attack,
+                                       result_selection_method=result_selection_method, rank_method="rank",
                                        method=method, test_window_size=test_window_size)
     real_ranks_2 = get_realistic_ranks(dataset=dataset, resample_factor=resample_factor,
-                                       data_processing=data_processing, dtw_attack=dtw_attack, rank_method="score",
+                                       data_processing=data_processing, dtw_attack=dtw_attack,
+                                       result_selection_method=result_selection_method, rank_method="score",
                                        method=method, test_window_size=test_window_size)
 
     real_ranks = [real_ranks_1, real_ranks_2]
@@ -126,14 +139,16 @@ def plot_realistic_ranks(dataset: Dataset, resample_factor: int, data_processing
 
 
 def subject_evaluation(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,
-                       plot_ranks: bool = True, methods: List[str] = None, test_window_sizes: List[int] = None,
-                       subject_list: List[int] = None):
+                       result_selection_method: str, plot_ranks: bool = True, methods: List[str] = None,
+                       test_window_sizes: List[int] = None, subject_list: List[int] = None):
     """
     Create distance and rank-table for each subject
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-Attack
+    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
+    SlicingDTWAttack ("min" or "mean)
     :param methods: List with methods ("non-stress", "stress")
     :param plot_ranks: If True: realistic ranks will be plotted and saved
     :param test_window_sizes: List with test-window-sizes
@@ -150,6 +165,8 @@ def subject_evaluation(dataset: Dataset, resample_factor: int, data_processing: 
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
     attack_path = os.path.join(resample_path, dtw_attack.name)
     processing_path = os.path.join(attack_path, data_processing.name)
+    if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+        processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
     subject_plot_path = os.path.join(processing_path, "subject-plots")
 
     for method in methods:
@@ -161,7 +178,8 @@ def subject_evaluation(dataset: Dataset, resample_factor: int, data_processing: 
 
             for subject in subject_list:
                 results = load_results(dataset=dataset, resample_factor=resample_factor,
-                                       data_processing=data_processing, dtw_attack=dtw_attack, subject_id=subject,
+                                       data_processing=data_processing, dtw_attack=dtw_attack,
+                                       result_selection_method=result_selection_method, subject_id=subject,
                                        method=method, test_window_size=test_window_size)
                 overall_ranks_rank, individual_ranks_rank = run_calculate_ranks(dataset=dataset, results=results,
                                                                                 rank_method="rank")
@@ -197,7 +215,7 @@ def subject_evaluation(dataset: Dataset, resample_factor: int, data_processing: 
             # Plot realistic ranks as boxplot
             if plot_ranks:
                 plot_realistic_ranks(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-                                     dtw_attack=dtw_attack,
+                                     dtw_attack=dtw_attack, result_selection_method=result_selection_method,
                                      path=os.path.join(path, "SW-DTW_realistic-rank-plot_") + str(method) + "_" +
                                      str(test_window_size) + ".pdf", method=method, test_window_size=test_window_size)
 
@@ -206,13 +224,16 @@ def subject_evaluation(dataset: Dataset, resample_factor: int, data_processing: 
 
 
 def precision_evaluation(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,
-                         methods: List[str] = None, test_window_sizes: List[int] = None, k_list: List[int] = None):
+                         result_selection_method: str, methods: List[str] = None, test_window_sizes: List[int] = None,
+                         k_list: List[int] = None):
     """
     Evaluate DTW alignments with precision@k
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
+    SlicingDTWAttack ("min" or "mean)
     :param methods: List with methods ("non-stress", "stress")
     :param test_window_sizes: List with test-window_sizes
     :param k_list: Specify k parameters in precision table; if None: all k [1 - len(subjects)] are shown
@@ -231,6 +252,8 @@ def precision_evaluation(dataset: Dataset, resample_factor: int, data_processing
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
     attack_path = os.path.join(resample_path, dtw_attack.name)
     processing_path = os.path.join(attack_path, data_processing.name)
+    if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+        processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
     precision_path = os.path.join(processing_path, "precision")
 
     for method in methods:
@@ -241,11 +264,13 @@ def precision_evaluation(dataset: Dataset, resample_factor: int, data_processing
             text.append("* test-window-size: " + str(test_window_size))
             text.append(create_md_precision_combinations(dataset=dataset, resample_factor=resample_factor,
                                                          data_processing=data_processing, dtw_attack=dtw_attack,
+                                                         result_selection_method=result_selection_method,
                                                          rank_method="rank", method=method,
                                                          test_window_size=test_window_size,
                                                          sensor_combinations=sensor_combinations, k_list=k_list))
             text.append(create_md_precision_combinations(dataset=dataset, resample_factor=resample_factor,
                                                          data_processing=data_processing, dtw_attack=dtw_attack,
+                                                         result_selection_method=result_selection_method,
                                                          rank_method="score", method=method,
                                                          test_window_size=test_window_size,
                                                          sensor_combinations=sensor_combinations, k_list=k_list))
@@ -265,13 +290,16 @@ def precision_evaluation(dataset: Dataset, resample_factor: int, data_processing
 
 
 def run_optimization_evaluation(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                dtw_attack: DtwAttack, standardized_evaluation: bool = True, k_list: List[int] = None):
+                                dtw_attack: DtwAttack, result_selection_method: str,
+                                standardized_evaluation: bool = True, k_list: List[int] = None):
     """
     Run complete optimizations evaluation, Evaluation of: rank-methods, classes, sensors, windows
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
+    SlicingDTWAttack ("min" or "mean)
     :param standardized_evaluation: If True -> Use rank-method = "score" and average-method = "weighted-mean"
     :param k_list: Specify k-parameters
     """
@@ -282,24 +310,26 @@ def run_optimization_evaluation(dataset: Dataset, resample_factor: int, data_pro
     # Get best configurations
     best_configurations = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor,
                                                         data_processing=data_processing, dtw_attack=dtw_attack,
+                                                        result_selection_method=result_selection_method,
                                                         standardized_evaluation=standardized_evaluation)
 
     # Evaluation of rank-method
     run_rank_method_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-                               k_list=k_list, dtw_attack=dtw_attack)
+                               dtw_attack=dtw_attack, result_selection_method=result_selection_method, k_list=k_list)
 
     # Evaluation of classes
     run_class_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-                         dtw_attack=dtw_attack, rank_method=best_configurations["rank_method"], k_list=k_list)
+                         dtw_attack=dtw_attack, result_selection_method=result_selection_method,
+                         rank_method=best_configurations["rank_method"], k_list=k_list)
 
     # Evaluation of sensor-combinations
     run_sensor_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-                          dtw_attack=dtw_attack, rank_method=best_configurations["rank_method"],
-                          average_method=best_configurations["class"], k_list=k_list)
+                          dtw_attack=dtw_attack, result_selection_method=result_selection_method,
+                          rank_method=best_configurations["rank_method"], average_method=best_configurations["class"],
+                          k_list=k_list)
 
     # Evaluation of windows
     run_window_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-                          dtw_attack=dtw_attack, rank_method=best_configurations["rank_method"],
-                          average_method=best_configurations["class"],
-                          sensor_combination=best_configurations["sensor"],
-                          k_list=k_list)
+                          dtw_attack=dtw_attack, result_selection_method=result_selection_method,
+                          rank_method=best_configurations["rank_method"], average_method=best_configurations["class"],
+                          sensor_combination=best_configurations["sensor"], k_list=k_list)

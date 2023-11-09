@@ -28,6 +28,7 @@ class MultiDtwAttack(DtwAttack):
 
         self.name = "Multi-DTW-Attack"
         self.windows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        self.windows = [4, 8, 12]
 
     @classmethod
     def create_subject_data(cls, data_dict: Dict[int, pd.DataFrame], method: str, test_window_size: int,
@@ -187,12 +188,15 @@ class MultiDtwAttack(DtwAttack):
         # Calculate average distances
         for subject in results_standard:
             results_standard[subject].setdefault("mean", dict())
+            results_standard[subject].setdefault("min", dict())
             for sensor in results_standard[subject][0]:
                 sensor_results = list()
                 for m in results_standard[subject]:
-                    if m != "mean":
+                    if m != "mean" and m != "min":
                         sensor_results.append(results_standard[subject][m][sensor])
+
                 results_standard[subject]["mean"].setdefault(sensor, round(statistics.mean(sensor_results), 4))
+                results_standard[subject]["min"].setdefault(sensor, round(min(sensor_results), 4))
 
         return results_standard
 

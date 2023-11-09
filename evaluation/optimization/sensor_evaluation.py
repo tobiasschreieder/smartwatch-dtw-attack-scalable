@@ -1,4 +1,6 @@
 from alignments.dtw_attacks.dtw_attack import DtwAttack
+from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
+from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.optimization.class_evaluation import get_class_distribution
@@ -42,7 +44,7 @@ def string_to_list(input_string: str) -> List[List[str]]:
 
 
 def calculate_sensor_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                dtw_attack: DtwAttack, rank_method: str = "score",
+                                dtw_attack: DtwAttack, result_selection_method: str, rank_method: str = "score",
                                 average_method: str = "weighted-mean", subject_ids: List[int] = None,
                                 k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
     """
@@ -51,6 +53,8 @@ def calculate_sensor_precisions(dataset: Dataset, resample_factor: int, data_pro
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
+    SlicingDTWAttack ("min" or "mean)
     :param rank_method: Specify rank-method "score" or "rank" (Choose best one)
     :param average_method: Specify averaging-method "mean" or "weighted-mean" (Choose best one)
     :param subject_ids: Specify subject-ids, if None: all subjects are used
@@ -77,6 +81,8 @@ def calculate_sensor_precisions(dataset: Dataset, resample_factor: int, data_pro
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
     attack_path = os.path.join(resample_path, dtw_attack.name)
     processing_path = os.path.join(attack_path, data_processing.name)
+    if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+        processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
     evaluations_path = os.path.join(processing_path, "evaluations")
     results_path = os.path.join(evaluations_path, "results")
     os.makedirs(results_path, exist_ok=True)
@@ -101,6 +107,8 @@ def calculate_sensor_precisions(dataset: Dataset, resample_factor: int, data_pro
                                                                             resample_factor=resample_factor,
                                                                             data_processing=data_processing,
                                                                             dtw_attack=dtw_attack,
+                                                                            result_selection_method=
+                                                                            result_selection_method,
                                                                             rank_method=rank_method,
                                                                             combinations=sensor_combinations,
                                                                             method=method,
@@ -159,13 +167,16 @@ def calculate_sensor_precisions(dataset: Dataset, resample_factor: int, data_pro
 
 
 def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                dtw_attack: DtwAttack, rank_method: str, average_method: str) -> Dict[str, int]:
+                                dtw_attack: DtwAttack, result_selection_method: str, rank_method: str,
+                                average_method: str) -> Dict[str, int]:
     """
     Calculate k-parameters where precision@k == 1
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
+    SlicingDTWAttack ("min" or "mean)
     :param rank_method: Specify ranking-method ("score" or "rank")
     :param average_method: Specify class averaging-method ("mean" or "weighted-mean)
     :return: Dictionary with results
@@ -173,7 +184,8 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     amount_subjects = len(dataset.subject_list)
     k_list = list(range(1, amount_subjects + 1))  # List with all possible k parameters
     results = calculate_sensor_precisions(dataset=dataset, resample_factor=resample_factor,
-                                          data_processing=data_processing, dtw_attack=dtw_attack, k_list=k_list,
+                                          data_processing=data_processing, dtw_attack=dtw_attack,
+                                          result_selection_method=result_selection_method, k_list=k_list,
                                           rank_method=rank_method, average_method=average_method)
     best_k_parameters = dict()
 
@@ -235,14 +247,16 @@ def get_best_sensor_configuration(res: Dict[int, Dict[str, float]], printable_ve
 
 
 def run_sensor_evaluation(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                          dtw_attack: DtwAttack, rank_method: str = "score", average_method: str = "weighted-mean",
-                          k_list: List[int] = None):
+                          dtw_attack: DtwAttack, result_selection_method: str, rank_method: str = "score",
+                          average_method: str = "weighted-mean", k_list: List[int] = None):
     """
     Run and save evaluation for sensor-combinations
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
+    SlicingDTWAttack ("min" or "mean)
     :param rank_method: Specify rank-method "score" or "rank" (use best performing method)
     :param average_method: Specify averaging-method "mean" or "weighted-mean" (use best performing method)
     :param k_list: Specify k-parameters
@@ -253,10 +267,12 @@ def run_sensor_evaluation(dataset: Dataset, resample_factor: int, data_processin
 
     results = calculate_sensor_precisions(dataset=dataset, resample_factor=resample_factor,
                                           data_processing=data_processing, dtw_attack=dtw_attack,
-                                          rank_method=rank_method, average_method=average_method, k_list=k_list)
+                                          result_selection_method=result_selection_method, rank_method=rank_method,
+                                          average_method=average_method, k_list=k_list)
     best_sensors = get_best_sensor_configuration(res=results, printable_version=True)
     best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor,
                                                     data_processing=data_processing, dtw_attack=dtw_attack,
+                                                    result_selection_method=result_selection_method,
                                                     rank_method=rank_method, average_method=average_method)
 
     text = [create_md_precision_sensors(rank_method=rank_method, average_method=average_method, results=results,
@@ -267,6 +283,8 @@ def run_sensor_evaluation(dataset: Dataset, resample_factor: int, data_processin
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
     attack_path = os.path.join(resample_path, dtw_attack.name)
     processing_path = os.path.join(attack_path, data_processing.name)
+    if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+        processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
     evaluations_path = os.path.join(processing_path, "evaluations")
     os.makedirs(evaluations_path, exist_ok=True)
 

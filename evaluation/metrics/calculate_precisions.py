@@ -13,13 +13,16 @@ cfg = Config.get()
 
 
 def calculate_precision(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,
-                        subject_ids: List[int], k: int, rank_method: str, method: str, test_window_size: int) -> float:
+                        result_selection_method: str, subject_ids: List[int], k: int, rank_method: str, method: str,
+                        test_window_size: int) -> float:
     """
     Calculate precision@k scores
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
+    SlicingDTWAttack ("min" or "mean)
     :param subject_ids: List with subject-ids
     :param k: Specify k parameter
     :param rank_method: Specify ranking method ("rank" or "score")
@@ -30,8 +33,8 @@ def calculate_precision(dataset: Dataset, resample_factor: int, data_processing:
     true_positives = 0
     for subject_id in subject_ids:
         results = load_results(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-                               dtw_attack=dtw_attack, subject_id=subject_id, method=method,
-                               test_window_size=test_window_size)
+                               result_selection_method=result_selection_method, dtw_attack=dtw_attack,
+                               subject_id=subject_id, method=method, test_window_size=test_window_size)
         overall_ranks, individual_ranks = run_calculate_ranks(dataset=dataset, results=results, rank_method=rank_method)
         real_rank = realistic_rank(overall_ranks=overall_ranks, subject_id=subject_id)
 
@@ -67,14 +70,17 @@ def calculate_precision_combinations(dataset: Dataset, realistic_ranks_comb: Dic
 
 
 def calculate_max_precision(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                            dtw_attack: DtwAttack, k: int, step_width: float, method: str, test_window_size: int,
-                            use_existing_weightings: bool) -> Dict[int, Dict[str, Union[float, List[float]]]]:
+                            dtw_attack: DtwAttack, result_selection_method: str, k: int, step_width: float, method: str,
+                            test_window_size: int, use_existing_weightings: bool) \
+        -> Dict[int, Dict[str, Union[float, List[float]]]]:
     """
     Calculate and save maximum possible precision value with all sensor weight characteristics
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
+    SlicingDTWAttack ("min" or "mean)
     :param k: Specify k for precision@k
     :param step_width: Specify step_with for weights
     :param method: Specify method of alignments
@@ -90,6 +96,7 @@ def calculate_max_precision(dataset: Dataset, resample_factor: int, data_process
         """
         realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset, resample_factor=resample_factor,
                                                                 data_processing=data_processing, dtw_attack=dtw_attack,
+                                                                result_selection_method=result_selection_method,
                                                                 rank_method="max", combinations=sensor_combinations,
                                                                 method=method, test_window_size=test_window_size,
                                                                 weights=test_weights)
@@ -113,6 +120,7 @@ def calculate_max_precision(dataset: Dataset, resample_factor: int, data_process
     if use_existing_weightings:
         weights_list = load_best_sensor_weightings(dataset=dataset, resample_factor=resample_factor,
                                                    data_processing=data_processing, dtw_attack=dtw_attack,
+                                                   result_selection_method=result_selection_method,
                                                    dataset_size=15)[method]["1"]
 
     # Calculate all possible sensor-weightings

@@ -125,8 +125,8 @@ def bold_maximum_precision(precision_comb: Dict[str, float], value: float) -> st
 
 
 def create_md_precision_combinations(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                     dtw_attack: DtwAttack, rank_method: str, method: str, test_window_size: int,
-                                     sensor_combinations: List[List[str]], max_k: int = 15,
+                                     dtw_attack: DtwAttack, result_selection_method: str, rank_method: str, method: str,
+                                     test_window_size: int, sensor_combinations: List[List[str]], max_k: int = 15,
                                      subject_ids: List[int] = None, k_list: List[int] = None) -> str:
     """
     Create text for md-file with precision@k scores for all sensor combinations
@@ -134,6 +134,8 @@ def create_md_precision_combinations(dataset: Dataset, resample_factor: int, dat
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
+    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
+    SlicingDTWAttack ("min" or "mean)
     :param rank_method: Specify ranking-method ("rank", "score")
     :param method: Specify method ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
@@ -150,6 +152,7 @@ def create_md_precision_combinations(dataset: Dataset, resample_factor: int, dat
 
     realistic_ranks_comb = get_realistic_ranks_combinations(dataset=dataset, resample_factor=resample_factor,
                                                             data_processing=data_processing, dtw_attack=dtw_attack,
+                                                            result_selection_method=result_selection_method,
                                                             rank_method=rank_method, combinations=sensor_combinations,
                                                             method=method, test_window_size=test_window_size,
                                                             subject_ids=subject_ids)
