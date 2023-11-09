@@ -7,7 +7,6 @@ from joblib import Parallel, delayed
 from typing import Dict, Tuple, List, Any
 from dtaidistance import dtw
 import pandas as pd
-import statistics
 import math
 import os
 import json
@@ -29,7 +28,6 @@ class SlicingDtwAttack(DtwAttack):
 
         self.name = "Slicing-DTW-Attack"
         self.windows = [i for i in range(1, 37)]
-        self.windows = [10, 20, 30]
 
     @classmethod
     def create_subject_data(cls, data_dict: Dict[int, pd.DataFrame], method: str, test_window_size: int,
@@ -58,7 +56,7 @@ class SlicingDtwAttack(DtwAttack):
             train_dict = dict()
 
             t_id = 0
-            for i in range(0, len(train_data) - test_window_size + 1, int(round(test_window_size / 2))):
+            for i in range(0, len(train_data) - test_window_size + 1, max(1, int(round(test_window_size / 2)))):
                 train_slice = train_data.iloc[i: i + test_window_size]
                 train_dict.setdefault(t_id, train_slice)
                 t_id += 1
@@ -223,7 +221,6 @@ class SlicingDtwAttack(DtwAttack):
         :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
         :param use_dba: If True use Dynamic Time Warping Barycenter Averaging
         """
-
         def parallel_calculation(current_subject_id: int) -> Dict[int, Dict[int, Dict[str, float]]]:
             """
             Run parallel calculations
