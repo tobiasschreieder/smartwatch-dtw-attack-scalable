@@ -19,7 +19,6 @@ import json
 
 
 cfg = Config.get()
-random.seed(1)
 
 
 def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
@@ -240,7 +239,8 @@ def get_best_window_configuration(res: Dict[int, Dict[int, float]]) -> int:
             break
 
     if len(best_windows) > 1:
-        best_window = random.choice(best_windows)
+        random.seed(1)
+        best_window = random.choice([int(w) for w in best_windows])
 
     return best_window
 

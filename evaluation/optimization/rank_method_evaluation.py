@@ -16,7 +16,6 @@ import json
 
 
 cfg = Config.get()
-random.seed(1)
 
 
 def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
@@ -220,6 +219,7 @@ def get_best_rank_method_configuration(res: Dict[int, Dict[str, float]]) -> str:
             best_rank_method = "rank"
             break
         else:
+            random.seed(1)
             best_rank_method = random.choice(["rank", "score"])
 
     return best_rank_method

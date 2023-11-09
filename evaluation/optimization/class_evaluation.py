@@ -17,7 +17,6 @@ import json
 
 
 cfg = Config.get()
-random.seed(1)
 
 
 def get_class_distribution(dataset: Dataset, resample_factor: int, data_processing: DataProcessing) \
@@ -309,6 +308,7 @@ def get_best_class_configuration(average_res: Dict[int, float], weighted_average
             best_class_method = "weighted-mean"
             break
         else:
+            random.seed(1)
             best_class_method = random.choice(["mean", "weighted-mean"])
 
     return best_class_method

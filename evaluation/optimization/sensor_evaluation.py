@@ -17,7 +17,6 @@ import json
 
 
 cfg = Config.get()
-random.seed(1)
 
 
 def list_to_string(input_list: List[str]) -> str:
@@ -239,6 +238,7 @@ def get_best_sensor_configuration(res: Dict[int, Dict[str, float]], printable_ve
             break
 
     if len(best_sensors) > 1:
+        random.seed(1)
         best_sensor = random.choice(best_sensors)
 
     if not printable_version:
