@@ -1,5 +1,6 @@
 from preprocessing.data_processing.standard_processing import StandardProcessing
 from preprocessing.data_processing.dba_processing import DbaProcessing
+from preprocessing.data_processing.pca_processing import PcaProcessing
 from preprocessing.datasets.load_wesad import Wesad
 from preprocessing.datasets.load_cgan import WesadCGan
 from preprocessing.datasets.load_dgan import WesadDGan
@@ -25,7 +26,7 @@ dataset = Wesad(dataset_size=15)
 resample_factor = 1000
 data_processing = StandardProcessing()
 dtw_attack = SlicingDtwAttack()
-result_selection_method = "mean"
+result_selection_method = "min"
 
 
 start = time.perf_counter()
