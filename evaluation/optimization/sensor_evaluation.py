@@ -90,13 +90,13 @@ def calculate_sensor_precisions(dataset: Dataset, resample_factor: int, data_pro
     path_string = ("SW-DTW_sensor-results_" + dataset.name + "_" + str(resample_factor) + ".json")
 
     # Try to load existing results
-    try:
+    if os.path.exists(os.path.join(results_path, path_string)):
         f = open(os.path.join(results_path, path_string), "r")
         results = json.loads(f.read())
         results = {int(k): v for k, v in results.items()}
 
     # Calculate results if not existing
-    except FileNotFoundError:
+    else:
         window_results_dict = dict()
         for test_window_size in test_window_sizes:
             results_class = dict()

@@ -50,10 +50,6 @@ def calculate_ranks_1(dataset: Dataset, results: Dict[str, Dict[str, float]]) \
         for j in rank_results[i]:
             ranks.append(rank_results[i][j])
         final_ranks.setdefault(i, round(statistics.mean(ranks)))
-        """ 
-        final_ranks.setdefault(i, round(statistics.mean(
-            [rank_results[i]["bvp"], rank_results[i]["eda"], rank_results[i]["acc"], rank_results[i]["temp"]])))
-        """
 
     items = list(final_ranks.values())
     final_rank_list = [sorted(items).index(x) for x in items]

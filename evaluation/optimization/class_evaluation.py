@@ -101,12 +101,12 @@ def calculate_class_precisions(dataset: Dataset, resample_factor: int, data_proc
     path_string = ("SW-DTW_class-results_" + dataset.name + "_" + str(resample_factor) + ".json")
 
     # Try to load existing results
-    try:
+    if os.path.exists(os.path.join(results_path, path_string)):
         f = open(os.path.join(results_path, path_string), "r")
         results = json.loads(f.read())
 
     # Calculate results if not existing
-    except FileNotFoundError:
+    else:
         window_results_dict = dict()
         for test_window_size in test_window_sizes:
             results_sensor = dict()

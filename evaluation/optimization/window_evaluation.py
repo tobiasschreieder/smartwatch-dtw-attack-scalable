@@ -68,7 +68,7 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_pro
     path_string = ("SW-DTW_window-results_" + dataset.name + "_" + str(resample_factor) + ".json")
 
     # Try to load existing results
-    try:
+    if os.path.exists(os.path.join(results_path, path_string)):
         f = open(os.path.join(results_path, path_string), "r")
         results = json.loads(f.read())
         results = {int(k): v for k, v in results.items()}
@@ -76,7 +76,7 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_pro
             results[k] = {int(k): v for k, v in results[k].items()}
 
     # Calculate results if not existing
-    except FileNotFoundError:
+    else:
         window_results_dict = dict()
         for test_window_size in windows_test:
             results_class = dict()
