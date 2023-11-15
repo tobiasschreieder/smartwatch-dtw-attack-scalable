@@ -28,7 +28,6 @@ class MultiDtwAttack(DtwAttack):
 
         self.name = "Multi-DTW-Attack"
         self.windows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-        self.windows = [4, 8, 12]
 
     @classmethod
     def create_subject_data(cls, data_dict: Dict[int, pd.DataFrame], method: str, test_window_size: int,

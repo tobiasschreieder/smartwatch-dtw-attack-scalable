@@ -29,7 +29,6 @@ class SlicingDtwAttack(DtwAttack):
 
         self.name = "Slicing-DTW-Attack"
         self.windows = [i for i in range(1, 37)]
-        self.windows = [12, 24, 36]
 
     @classmethod
     def create_subject_data(cls, data_dict: Dict[int, pd.DataFrame], method: str, test_window_size: int,

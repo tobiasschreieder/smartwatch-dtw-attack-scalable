@@ -6,6 +6,7 @@ from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
 from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack
 from config import Config
 
+from joblib import Parallel, delayed
 from typing import List, Dict, Tuple, Any
 import statistics
 import math
@@ -341,7 +342,7 @@ def run_calculate_ranks_combinations(dataset: Dataset, results: Dict[str, Dict[s
 
 def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
                                      dtw_attack: DtwAttack, result_selection_method: str, rank_method: str,
-                                     combinations: List[List[str]], method: str, test_window_size: int,
+                                     combinations: List[List[str]], method: str, test_window_size: int, n_jobs: int,
                                      subject_ids: List[int] = None, weights: Dict[str, float] = None) \
         -> Dict[str, List[int]]:
     """
@@ -356,10 +357,28 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
     :param combinations: Specify sensor combinations
     :param method: Specify DTW-method ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
+    :param n_jobs: Number of processes to use (parallelization)
     :param subject_ids: Specify subjects if needed; ignore if all subjects should be used
     :param weights: Specify weights
     :return: Dictionary with realistic ranks for subjects
     """
+    def parallel_calculation(current_subject_id: int, current_rank_method: str) -> Dict[int, Dict[str, Dict[str, int]]]:
+        """
+        Run rank calculations parallel
+        :param current_subject_id: Specify subject-id
+        :param current_rank_method: Choose ranking method ("rank", "score")
+        :return: Dictionary with overall_ranks_comb
+        """
+        results = load_results(dataset=dataset, resample_factor=resample_factor,
+                               data_processing=data_processing, dtw_attack=dtw_attack,
+                               result_selection_method=result_selection_method, subject_id=current_subject_id,
+                               method=method, test_window_size=test_window_size)
+        overall_ranks_comb = run_calculate_ranks_combinations(dataset=dataset, results=results,
+                                                              rank_method=current_rank_method,
+                                                              combinations=combinations, weights=weights)
+
+        return {current_subject_id: overall_ranks_comb}
+
     if weights is None:
         weights = dict()
     if subject_ids is None:
@@ -381,30 +400,32 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
         path_string = ("SW-DTW_realistic-ranks-combinations_" + str(method) + "_" + str(test_window_size) + ".json")
 
         # Try to load existing results
-        try:
+        if os.path.exists(os.path.join(window_path, path_string)):
             f = open(os.path.join(window_path, path_string), "r")
             realistic_ranks_comb = json.loads(f.read())
             realistic_ranks_comb = realistic_ranks_comb[rank_method]
 
         # Calculate and save results if not available
-        except FileNotFoundError:
+        else:
             realistic_ranks_comb = dict()
-            for rank_method in ["rank", "score"]:
-                realistic_ranks_comb.setdefault(rank_method, dict())
-                for subject_id in subject_ids:
+            for ranking_method in ["rank", "score"]:
+                realistic_ranks_comb.setdefault(ranking_method, dict())
 
-                    results = load_results(dataset=dataset, resample_factor=resample_factor,
-                                           data_processing=data_processing, dtw_attack=dtw_attack,
-                                           result_selection_method=result_selection_method, subject_id=subject_id,
-                                           method=method, test_window_size=test_window_size)
-                    overall_ranks_comb = run_calculate_ranks_combinations(dataset=dataset, results=results,
-                                                                          rank_method=rank_method,
-                                                                          combinations=combinations, weights=weights)
+                # Parallelization
+                with Parallel(n_jobs=n_jobs) as parallel:
+                    results = parallel(
+                        delayed(parallel_calculation)(current_subject_id=subject_id, current_rank_method=ranking_method)
+                        for subject_id in subject_ids)
 
-                    for sensor, subject_rank in overall_ranks_comb.items():
-                        if sensor not in realistic_ranks_comb[rank_method]:
-                            realistic_ranks_comb[rank_method].setdefault(sensor, list())
-                        realistic_ranks_comb[rank_method][sensor].append(realistic_rank(subject_rank, subject_id))
+                overall_ranks_comb = dict()
+                for res in results:
+                    overall_ranks_comb.setdefault(list(res.keys())[0], list(res.values())[0])
+
+                for subject_id in overall_ranks_comb:
+                    for sensor, subject_rank in overall_ranks_comb[subject_id].items():
+                        if sensor not in realistic_ranks_comb[ranking_method]:
+                            realistic_ranks_comb[ranking_method].setdefault(sensor, list())
+                        realistic_ranks_comb[ranking_method][sensor].append(realistic_rank(subject_rank, subject_id))
 
             # Save interim results as JSON-File
             with open(os.path.join(window_path, path_string), "w", encoding="utf-8") as outfile:
@@ -412,21 +433,24 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
 
             print("SW-DTW rank-results saved at: " + str(os.path.join(window_path, path_string)))
 
-            # Just return results for specified rank-method
             realistic_ranks_comb = realistic_ranks_comb[rank_method]
 
     # Rank-method == "max" (new calculation necessary):
     else:
         realistic_ranks_comb = dict()
-        for subject_id in subject_ids:
-            results = load_results(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-                                   dtw_attack=dtw_attack, result_selection_method=result_selection_method,
-                                   subject_id=subject_id, method=method, test_window_size=test_window_size)
-            overall_ranks_comb = run_calculate_ranks_combinations(dataset=dataset, results=results,
-                                                                  rank_method=rank_method,
-                                                                  combinations=combinations, weights=weights)
 
-            for k, v in overall_ranks_comb.items():
+        # Parallelization
+        with Parallel(n_jobs=n_jobs) as parallel:
+            results = parallel(
+                delayed(parallel_calculation)(current_subject_id=subject_id, current_rank_method=rank_method)
+                for subject_id in subject_ids)
+
+        overall_ranks_comb = dict()
+        for res in results:
+            overall_ranks_comb.setdefault(list(res.keys())[0], list(res.values())[0])
+
+        for subject_id in overall_ranks_comb:
+            for k, v in overall_ranks_comb[subject_id].items():
                 if k not in realistic_ranks_comb:
                     realistic_ranks_comb.setdefault(k, list())
                 realistic_ranks_comb[k].append(realistic_rank(v, subject_id))

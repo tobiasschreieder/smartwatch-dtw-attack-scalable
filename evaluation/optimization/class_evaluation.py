@@ -59,8 +59,9 @@ def get_class_distribution(dataset: Dataset, resample_factor: int, data_processi
 
 
 def calculate_class_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                               dtw_attack: DtwAttack, result_selection_method: str, rank_method: str = "score",
-                               subject_ids: List = None, k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
+                               dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int,
+                               rank_method: str = "score", subject_ids: List = None, k_list: List[int] = None) \
+        -> Dict[int, Dict[str, float]]:
     """
     Calculate precisions per class ("baseline", "amusement", "stress"), mean over sensors and test-proportions
     :param dataset: Specify dataset
@@ -69,6 +70,7 @@ def calculate_class_precisions(dataset: Dataset, resample_factor: int, data_proc
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean)
+    :param n_jobs: Number of processes to use (parallelization)
     :param rank_method: Specify rank-method "score" or "rank" (use beste rank-method)
     :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param k_list: Specify k parameters; if None: 1, 3, 5 are used
@@ -122,6 +124,7 @@ def calculate_class_precisions(dataset: Dataset, resample_factor: int, data_proc
                                                                             combinations=sensor_combinations,
                                                                             method=method,
                                                                             test_window_size=test_window_size,
+                                                                            n_jobs=n_jobs,
                                                                             subject_ids=subject_ids)
                     # Calculate precision values with specified rank-method
                     precision_comb = calculate_precision_combinations(dataset=dataset,
@@ -164,8 +167,8 @@ def calculate_class_precisions(dataset: Dataset, resample_factor: int, data_proc
 
 
 def calculate_average_class_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                       dtw_attack: DtwAttack, result_selection_method: str, rank_method: str = "score",
-                                       subject_ids: List = None, k_list: List[int] = None) \
+                                       dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int,
+                                       rank_method: str = "score", subject_ids: List = None, k_list: List[int] = None) \
         -> Tuple[Dict[int, float], Dict[int, int]]:
     """
     Calculate average class precision values (mean and weighted mean over classes)
@@ -175,6 +178,7 @@ def calculate_average_class_precisions(dataset: Dataset, resample_factor: int, d
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean)
+    :param n_jobs: Number of processes to use (parallelization)
     :param rank_method: Specify rank-method "score" or "rank" (use beste rank-method)
     :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param k_list: Specify k parameters; if None: 1, 3, 5 are used
@@ -188,7 +192,7 @@ def calculate_average_class_precisions(dataset: Dataset, resample_factor: int, d
 
     results = calculate_class_precisions(dataset=dataset, resample_factor=resample_factor,
                                          data_processing=data_processing, dtw_attack=dtw_attack,
-                                         result_selection_method=result_selection_method,
+                                         result_selection_method=result_selection_method, n_jobs=n_jobs,
                                          rank_method=rank_method, subject_ids=subject_ids, k_list=k_list)
     class_distribution = get_class_distribution(dataset=dataset, resample_factor=resample_factor,
                                                 data_processing=data_processing)
@@ -214,7 +218,7 @@ def calculate_average_class_precisions(dataset: Dataset, resample_factor: int, d
 
 
 def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                dtw_attack: DtwAttack, result_selection_method: str, rank_method: str) \
+                                dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int, rank_method: str) \
         -> Dict[str, int]:
     """
     Calculate k-parameters where precision@k == 1
@@ -224,6 +228,7 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean)
+    :param n_jobs: Number of processes to use (parallelization)
     :param rank_method: Specify ranking-method ("score" or "rank")
     :return: Dictionary with results
     """
@@ -231,7 +236,7 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     k_list = list(range(1, amount_subjects + 1))  # List with all possible k parameters
     results = calculate_class_precisions(dataset=dataset, resample_factor=resample_factor,
                                          data_processing=data_processing, dtw_attack=dtw_attack,
-                                         result_selection_method=result_selection_method, k_list=k_list,
+                                         result_selection_method=result_selection_method, n_jobs=n_jobs, k_list=k_list,
                                          rank_method=rank_method)
     best_k_parameters = dict()
 
@@ -252,8 +257,8 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
 
 
 def calculate_best_average_k_parameters(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                        dtw_attack: DtwAttack, result_selection_method: str, rank_method: str) \
-        -> Dict[str, int]:
+                                        dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int,
+                                        rank_method: str) -> Dict[str, int]:
     """
     Calculate k-parameters where precision@k == 1 for average-classes
     :param dataset: Specify dataset
@@ -262,6 +267,7 @@ def calculate_best_average_k_parameters(dataset: Dataset, resample_factor: int, 
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean)
+    :param n_jobs: Number of processes to use (parallelization)
     :param rank_method: Specify ranking-method ("score" or "rank")
     :return: Dictionary with results
     """
@@ -273,6 +279,7 @@ def calculate_best_average_k_parameters(dataset: Dataset, resample_factor: int, 
                                                                                    dtw_attack=dtw_attack,
                                                                                    result_selection_method=
                                                                                    result_selection_method,
+                                                                                   n_jobs=n_jobs,
                                                                                    rank_method=rank_method,
                                                                                    k_list=k_list,
                                                                                    subject_ids=subject_ids)
@@ -315,7 +322,7 @@ def get_best_class_configuration(average_res: Dict[int, float], weighted_average
 
 
 def run_class_evaluation(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,
-                         result_selection_method, rank_method: str = "score", k_list: List[int] = None):
+                         result_selection_method, n_jobs: int, rank_method: str = "score", k_list: List[int] = None):
     """
     Run and save evaluation for classes
     :param dataset: Specify dataset
@@ -324,6 +331,7 @@ def run_class_evaluation(dataset: Dataset, resample_factor: int, data_processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean)
+    :param n_jobs: Number of processes to use (parallelization)
     :param rank_method: Specify rank-method "score" or "rank" (use best performing method)
     :param k_list: Specify k-parameters
     """
@@ -333,27 +341,28 @@ def run_class_evaluation(dataset: Dataset, resample_factor: int, data_processing
 
     results = calculate_class_precisions(dataset=dataset, resample_factor=resample_factor,
                                          data_processing=data_processing, dtw_attack=dtw_attack,
-                                         result_selection_method=result_selection_method, rank_method=rank_method,
-                                         k_list=k_list)
+                                         result_selection_method=result_selection_method, n_jobs=n_jobs,
+                                         rank_method=rank_method, k_list=k_list)
     average_results, weighted_average_results = calculate_average_class_precisions(dataset=dataset,
                                                                                    resample_factor=resample_factor,
                                                                                    data_processing=data_processing,
                                                                                    dtw_attack=dtw_attack,
                                                                                    result_selection_method=
                                                                                    result_selection_method,
+                                                                                   n_jobs=n_jobs,
                                                                                    rank_method=rank_method)
     best_class_method = get_best_class_configuration(average_res=average_results,
                                                      weighted_average_res=weighted_average_results)
 
     best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor,
                                                     data_processing=data_processing, dtw_attack=dtw_attack,
-                                                    result_selection_method=result_selection_method,
+                                                    result_selection_method=result_selection_method, n_jobs=n_jobs,
                                                     rank_method=rank_method)
     best_average_k_parameters = calculate_best_average_k_parameters(dataset=dataset, resample_factor=resample_factor,
                                                                     data_processing=data_processing,
                                                                     dtw_attack=dtw_attack,
                                                                     result_selection_method=result_selection_method,
-                                                                    rank_method=rank_method)
+                                                                    n_jobs=n_jobs, rank_method=rank_method)
 
     text = [create_md_precision_classes(rank_method=rank_method, results=results, average_results=average_results,
                                         weighted_average_results=weighted_average_results,

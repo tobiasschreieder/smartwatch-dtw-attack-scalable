@@ -24,7 +24,7 @@ cfg = Config.get()
 
 
 def calculate_best_configurations(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                  dtw_attack: DtwAttack, result_selection_method: str,
+                                  dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int,
                                   standardized_evaluation: bool = True, k_list: List[int] = None) \
         -> Dict[str, Union[str, int, List[List[str]]]]:
     """
@@ -35,6 +35,7 @@ def calculate_best_configurations(dataset: Dataset, resample_factor: int, data_p
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean)
+    :param n_jobs: Number of processes to use (parallelization)
     :param standardized_evaluation: If True -> Use rank-method = "score" and average-method = "weighted-mean"
     :param k_list: Specify k-parameters
     :return: Dictionary with best configurations
@@ -50,7 +51,7 @@ def calculate_best_configurations(dataset: Dataset, resample_factor: int, data_p
         # Best rank-method
         results = calculate_rank_method_precisions(dataset=dataset, resample_factor=resample_factor,
                                                    data_processing=data_processing,
-                                                   result_selection_method=result_selection_method,
+                                                   result_selection_method=result_selection_method, n_jobs=n_jobs,
                                                    dtw_attack=dtw_attack, k_list=k_list)
         best_rank_method = get_best_rank_method_configuration(res=results)
 
@@ -61,6 +62,7 @@ def calculate_best_configurations(dataset: Dataset, resample_factor: int, data_p
                                                                                        dtw_attack=dtw_attack,
                                                                                        result_selection_method=
                                                                                        result_selection_method,
+                                                                                       n_jobs=n_jobs,
                                                                                        rank_method=best_rank_method,
                                                                                        k_list=k_list)
         best_class_method = get_best_class_configuration(average_res=average_results,
@@ -69,16 +71,16 @@ def calculate_best_configurations(dataset: Dataset, resample_factor: int, data_p
     # Best sensors
     results = calculate_sensor_precisions(dataset=dataset, resample_factor=resample_factor,
                                           data_processing=data_processing, dtw_attack=dtw_attack,
-                                          result_selection_method=result_selection_method, rank_method=best_rank_method,
-                                          average_method=best_class_method, k_list=k_list)
+                                          result_selection_method=result_selection_method, n_jobs=n_jobs,
+                                          rank_method=best_rank_method, average_method=best_class_method, k_list=k_list)
     best_sensors = get_best_sensor_configuration(res=results)
 
     # Best window
     results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor,
                                           data_processing=data_processing, dtw_attack=dtw_attack,
-                                          result_selection_method=result_selection_method, rank_method=best_rank_method,
-                                          average_method=best_class_method, sensor_combination=best_sensors,
-                                          k_list=k_list)
+                                          result_selection_method=result_selection_method, n_jobs=n_jobs,
+                                          rank_method=best_rank_method, average_method=best_class_method,
+                                          sensor_combination=best_sensors, k_list=k_list)
     best_window = get_best_window_configuration(res=results)
 
     best_configurations = {"rank_method": best_rank_method, "class": best_class_method, "sensor": best_sensors,
@@ -143,8 +145,8 @@ def get_random_guess_precision(dataset: Dataset, k: int) -> float:
 
 
 def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                   dtw_attack: DtwAttack, result_selection_method: str, k_list: List[int] = None) \
-        -> Dict[int, Dict[str, float]]:
+                                   dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int,
+                                   k_list: List[int] = None) -> Dict[int, Dict[str, float]]:
     """
     Calculate overall evaluation precision scores (DTW-results, maximum results and random guess results)
     :param dataset: Specify dataset
@@ -153,6 +155,7 @@ def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, data_
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean)
+    :param n_jobs: Number of processes to use (parallelization)
     :param k_list: List with all k's
     :return: Dictionary with results
     """
@@ -161,10 +164,10 @@ def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, data_
 
     best_configuration = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor,
                                                        data_processing=data_processing, dtw_attack=dtw_attack,
-                                                       result_selection_method=result_selection_method)
+                                                       result_selection_method=result_selection_method, n_jobs=n_jobs)
     results = calculate_window_precisions(dataset=dataset, resample_factor=resample_factor,
                                           data_processing=data_processing, dtw_attack=dtw_attack,
-                                          result_selection_method=result_selection_method,
+                                          result_selection_method=result_selection_method, n_jobs=n_jobs,
                                           rank_method=best_configuration["rank_method"],
                                           average_method=best_configuration["class"],
                                           sensor_combination=best_configuration["sensor"], k_list=k_list)
@@ -189,7 +192,7 @@ def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, data_
 
 
 def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                                dtw_attack: DtwAttack, result_selection_method: str) -> Dict[str, int]:
+                                dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int) -> Dict[str, int]:
     """
     Calculate k-parameters where precision@k == 1
     :param dataset: Specify dataset
@@ -198,13 +201,15 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean)
+    :param n_jobs: Number of processes to use (parallelization)
     :return: Dictionary with results
     """
     amount_subjects = len(dataset.subject_list)
     k_list = list(range(1, amount_subjects + 1))  # List with all possible k parameters
     results = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor,
                                              data_processing=data_processing, dtw_attack=dtw_attack,
-                                             result_selection_method=result_selection_method, k_list=k_list)
+                                             result_selection_method=result_selection_method, n_jobs=n_jobs,
+                                             k_list=k_list)
     best_k_parameters = dict()
 
     set_method = False
@@ -224,8 +229,9 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
 
 
 def get_best_sensor_weightings(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                               dtw_attack: DtwAttack, result_selection_method: str, test_window_size: int, methods: List[str] = None,
-                               k_list: List[int] = None) -> Dict[str, Dict[int, List[Dict[str, float]]]]:
+                               dtw_attack: DtwAttack, result_selection_method: str, test_window_size: int,
+                               methods: List[str] = None, k_list: List[int] = None) \
+        -> Dict[str, Dict[int, List[Dict[str, float]]]]:
     """
     Calculate best sensor-weightings for specified window-size
     :param dataset: Specify dataset
@@ -258,7 +264,8 @@ def get_best_sensor_weightings(dataset: Dataset, resample_factor: int, data_proc
 
 
 def run_overall_evaluation(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
-                           dtw_attack: DtwAttack, result_selection_method: str, save_weightings: bool = False):
+                           dtw_attack: DtwAttack, result_selection_method: str, n_jobs: int = -1,
+                           save_weightings: bool = False):
     """
     Run and save overall evaluation (DTW-results, maximum results, random guess results)
     :param dataset: Specify dataset
@@ -267,21 +274,22 @@ def run_overall_evaluation(dataset: Dataset, resample_factor: int, data_processi
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean)
+    :param n_jobs: Number of processes to use (parallelization)
     :param save_weightings: If true -> Weighting will be saved as json-file
     """
     best_configuration = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor,
                                                        data_processing=data_processing, dtw_attack=dtw_attack,
-                                                       result_selection_method=result_selection_method)
+                                                       result_selection_method=result_selection_method, n_jobs=n_jobs)
     overall_results = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor,
                                                      data_processing=data_processing, dtw_attack=dtw_attack,
-                                                     result_selection_method=result_selection_method)
+                                                     result_selection_method=result_selection_method, n_jobs=n_jobs)
     weightings = get_best_sensor_weightings(dataset=dataset, resample_factor=resample_factor,
                                             data_processing=data_processing, dtw_attack=dtw_attack,
                                             result_selection_method=result_selection_method,
                                             test_window_size=best_configuration["window"])
     best_k_parameters = calculate_best_k_parameters(dataset=dataset, resample_factor=resample_factor,
                                                     data_processing=data_processing, dtw_attack=dtw_attack,
-                                                    result_selection_method=result_selection_method)
+                                                    result_selection_method=result_selection_method, n_jobs=n_jobs)
     sensor_combinations = get_sensor_combinations(dataset=dataset, resample_factor=resample_factor,
                                                   data_processing=data_processing)
 

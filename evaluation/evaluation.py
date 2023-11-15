@@ -51,7 +51,7 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
         """
         max_precision = calculate_max_precision(dataset=dataset, resample_factor=resample_factor,
                                                 data_processing=data_processing, dtw_attack=dtw_attack,
-                                                result_selection_method=result_selection_method, k=k,
+                                                result_selection_method=result_selection_method, n_jobs=n_jobs, k=k,
                                                 step_width=step_width, method=method, test_window_size=test_window_size,
                                                 use_existing_weightings=use_existing_weightings)
 
@@ -59,7 +59,7 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
 
     best_configurations = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor,
                                                         data_processing=data_processing, dtw_attack=dtw_attack,
-                                                        result_selection_method=result_selection_method,
+                                                        result_selection_method=result_selection_method, n_jobs=n_jobs,
                                                         standardized_evaluation=True)
 
     if methods is None:
@@ -224,8 +224,8 @@ def subject_evaluation(dataset: Dataset, resample_factor: int, data_processing: 
 
 
 def precision_evaluation(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,
-                         result_selection_method: str, methods: List[str] = None, test_window_sizes: List[int] = None,
-                         k_list: List[int] = None):
+                         result_selection_method: str, n_jobs: int = -1, methods: List[str] = None,
+                         test_window_sizes: List[int] = None, k_list: List[int] = None):
     """
     Evaluate DTW alignments with precision@k
     :param dataset: Specify dataset
@@ -234,6 +234,7 @@ def precision_evaluation(dataset: Dataset, resample_factor: int, data_processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean)
+    :param n_jobs: Number of processes to use (parallelization)
     :param methods: List with methods ("non-stress", "stress")
     :param test_window_sizes: List with test-window_sizes
     :param k_list: Specify k parameters in precision table; if None: all k [1 - len(subjects)] are shown
@@ -264,13 +265,13 @@ def precision_evaluation(dataset: Dataset, resample_factor: int, data_processing
             text.append("* test-window-size: " + str(test_window_size))
             text.append(create_md_precision_combinations(dataset=dataset, resample_factor=resample_factor,
                                                          data_processing=data_processing, dtw_attack=dtw_attack,
-                                                         result_selection_method=result_selection_method,
+                                                         result_selection_method=result_selection_method, n_jobs=n_jobs,
                                                          rank_method="rank", method=method,
                                                          test_window_size=test_window_size,
                                                          sensor_combinations=sensor_combinations, k_list=k_list))
             text.append(create_md_precision_combinations(dataset=dataset, resample_factor=resample_factor,
                                                          data_processing=data_processing, dtw_attack=dtw_attack,
-                                                         result_selection_method=result_selection_method,
+                                                         result_selection_method=result_selection_method, n_jobs=n_jobs,
                                                          rank_method="score", method=method,
                                                          test_window_size=test_window_size,
                                                          sensor_combinations=sensor_combinations, k_list=k_list))
@@ -291,7 +292,7 @@ def precision_evaluation(dataset: Dataset, resample_factor: int, data_processing
 
 def run_optimization_evaluation(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
                                 dtw_attack: DtwAttack, result_selection_method: str,
-                                standardized_evaluation: bool = True, k_list: List[int] = None):
+                                standardized_evaluation: bool = True, n_jobs: int = -1, k_list: List[int] = None):
     """
     Run complete optimizations evaluation, Evaluation of: rank-methods, classes, sensors, windows
     :param dataset: Specify dataset
@@ -301,6 +302,7 @@ def run_optimization_evaluation(dataset: Dataset, resample_factor: int, data_pro
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
     SlicingDTWAttack ("min" or "mean)
     :param standardized_evaluation: If True -> Use rank-method = "score" and average-method = "weighted-mean"
+    :param n_jobs: Number of processes to use (parallelization)
     :param k_list: Specify k-parameters
     """
     # Specify k parameters
@@ -311,25 +313,26 @@ def run_optimization_evaluation(dataset: Dataset, resample_factor: int, data_pro
     best_configurations = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor,
                                                         data_processing=data_processing, dtw_attack=dtw_attack,
                                                         result_selection_method=result_selection_method,
-                                                        standardized_evaluation=standardized_evaluation)
+                                                        standardized_evaluation=standardized_evaluation, n_jobs=n_jobs)
 
     # Evaluation of rank-method
     run_rank_method_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-                               dtw_attack=dtw_attack, result_selection_method=result_selection_method, k_list=k_list)
+                               dtw_attack=dtw_attack, result_selection_method=result_selection_method, n_jobs=n_jobs,
+                               k_list=k_list)
 
     # Evaluation of classes
     run_class_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-                         dtw_attack=dtw_attack, result_selection_method=result_selection_method,
+                         dtw_attack=dtw_attack, result_selection_method=result_selection_method, n_jobs=n_jobs,
                          rank_method=best_configurations["rank_method"], k_list=k_list)
 
     # Evaluation of sensor-combinations
     run_sensor_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-                          dtw_attack=dtw_attack, result_selection_method=result_selection_method,
+                          dtw_attack=dtw_attack, result_selection_method=result_selection_method, n_jobs=n_jobs,
                           rank_method=best_configurations["rank_method"], average_method=best_configurations["class"],
                           k_list=k_list)
 
     # Evaluation of windows
     run_window_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-                          dtw_attack=dtw_attack, result_selection_method=result_selection_method,
+                          dtw_attack=dtw_attack, result_selection_method=result_selection_method, n_jobs=n_jobs,
                           rank_method=best_configurations["rank_method"], average_method=best_configurations["class"],
                           sensor_combination=best_configurations["sensor"], k_list=k_list)

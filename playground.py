@@ -25,7 +25,7 @@ Example Calculations
 dataset = Wesad(dataset_size=15)
 resample_factor = 1000
 data_processing = StandardProcessing()
-dtw_attack = SlicingDtwAttack()
+dtw_attack = SingleDtwAttack()
 result_selection_method = "min"
 
 
@@ -44,28 +44,28 @@ start = time.perf_counter()
 """4. Plot exploratory data analysis to /out/eda"""
 # plot_subject_data(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing)
 
-"""5. Evaluate DTW-alignment results per subject; save MD-tables with distance and rank results and realistic-rank-plots
-to /out/subject-plots"""
-# subject_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-#                    dtw_attack=dtw_attack, result_selection_method=result_selection_method)
-
-"""6. Evaluation DTW-alignment results overall mit precision@k; save MD-tables with precision values"""
-# precision_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-#                      dtw_attack=dtw_attack, result_selection_method=result_selection_method)
-
-"""7. Complete optimization evaluation, save precision@k values as MD-table"""
+"""5. Complete optimization evaluation, save precision@k values as MD-table"""
 # run_optimization_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
 #                             dtw_attack=dtw_attack, result_selection_method=result_selection_method)
 
-"""8. Calculate maximum precisions, save precision@k values as json file"""
+"""6. Calculate maximum precisions, save precision@k values as json file"""
 # run_calculate_max_precision(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
 #                             dtw_attack=dtw_attack, result_selection_method=result_selection_method,
 #                             use_existing_weightings=False)
 
-"""9. Overall evaluation with (DTW-results, maximum results, random guess results), save precision@k values as
+"""7. Overall evaluation with (DTW-results, maximum results, random guess results), save precision@k values as
 MD-table"""
 # run_overall_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
-#                        dtw_attack=dtw_attack, result_selection_method=result_selection_method, save_weightings=True)
+#                       dtw_attack=dtw_attack, result_selection_method=result_selection_method, save_weightings=True)
+
+"""8. Evaluate DTW-alignment results per subject; save MD-tables with distance and rank results and realistic-rank-plots
+to /out/subject-plots"""
+# subject_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
+#                    dtw_attack=dtw_attack, result_selection_method=result_selection_method)
+
+"""9. Evaluation DTW-alignment results overall mit precision@k; save MD-tables with precision values"""
+# precision_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
+#                      dtw_attack=dtw_attack, result_selection_method=result_selection_method)
 
 end = time.perf_counter()
 print("Runtime: " + str(round(end - start, 2)) + "s")
