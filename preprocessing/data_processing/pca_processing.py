@@ -3,6 +3,7 @@ from preprocessing.data_processing.data_processing import DataProcessing
 from typing import Dict
 import pandas as pd
 from sklearn.decomposition import PCA
+from sklearn import preprocessing
 
 
 class PcaProcessing(DataProcessing):
@@ -35,7 +36,8 @@ class PcaProcessing(DataProcessing):
         for subject in data_dict:
             label = data_dict[subject].label
             data = data_dict[subject].drop(columns=["label"])
-            data = (data - data.mean()) / data.std()
+            normalizer = preprocessing.StandardScaler().fit(data)
+            data = normalizer.transform(data)
             pca = PCA(n_components=pca_components)
             data_pca = pca.fit_transform(data)
             data_pca = pd.DataFrame(data_pca, columns=pca_columns).assign(label=label)
