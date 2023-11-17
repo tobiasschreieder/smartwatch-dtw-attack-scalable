@@ -65,7 +65,7 @@ class DtwAttack:
 
     def run_calculations(self, dataset: Dataset, data_processing: DataProcessing, test_window_sizes: List[int],
                          resample_factor: int, additional_windows: int, n_jobs: int, methods: List[str] = None,
-                         subject_ids: List[int] = None):
+                         subject_ids: List[int] = None, runtime_simulation: bool = False):
         """
         Run DTW-calculations with all given parameters and save results as json
         :param dataset: Specify dataset, which should be used
@@ -76,5 +76,6 @@ class DtwAttack:
         :param n_jobs: Number of processes to use (parallelization)
         :param methods:  List with all method that should be used -> "non-stress" / "stress" (str)
         :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
+        :param runtime_simulation: If True -> only simulate isolated attack and save runtime
         """
         pass

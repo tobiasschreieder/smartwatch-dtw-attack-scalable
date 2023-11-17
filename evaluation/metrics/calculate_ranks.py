@@ -339,7 +339,8 @@ def run_calculate_ranks_combinations(dataset: Dataset, results: Dict[str, Dict[s
 def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
                                      dtw_attack: DtwAttack, result_selection_method: str, rank_method: str,
                                      combinations: List[List[str]], method: str, test_window_size: int, n_jobs: int,
-                                     subject_ids: List[int] = None, weights: Dict[str, float] = None) \
+                                     subject_ids: List[int] = None, weights: Dict[str, float] = None,
+                                     runtime_simulation: bool = False) \
         -> Dict[str, List[int]]:
     """
     Get realistic ranks for sensor combination results
@@ -356,6 +357,7 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
     :param n_jobs: Number of processes to use (parallelization)
     :param subject_ids: Specify subjects if needed; ignore if all subjects should be used
     :param weights: Specify weights
+    :param runtime_simulation: If True -> only simulate isolated attack
     :return: Dictionary with realistic ranks for subjects
     """
     def parallel_calculation(current_subject_id: int, current_rank_method: str) -> Dict[int, Dict[str, Dict[str, int]]]:
@@ -368,7 +370,7 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
         results = load_results(dataset=dataset, resample_factor=resample_factor,
                                data_processing=data_processing, dtw_attack=dtw_attack,
                                result_selection_method=result_selection_method, subject_id=current_subject_id,
-                               method=method, test_window_size=test_window_size)
+                               method=method, test_window_size=test_window_size, runtime_simulation=runtime_simulation)
         overall_ranks_comb = run_calculate_ranks_combinations(dataset=dataset, results=results,
                                                               rank_method=current_rank_method,
                                                               combinations=combinations, weights=weights)
@@ -382,54 +384,69 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
 
     # Rank-method == "rank" or "score":
     if rank_method != "max":
-        # Specify paths
-        data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
-        resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
-        attack_path = os.path.join(resample_path, dtw_attack.name)
-        processing_path = os.path.join(attack_path, data_processing.name)
-        if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
-            processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
-        precision_path = os.path.join(processing_path, "precision")
-        method_path = os.path.join(precision_path, method)
-        window_path = os.path.join(method_path, "window-size=" + str(test_window_size))
-        os.makedirs(window_path, exist_ok=True)
-        path_string = ("SW-DTW_realistic-ranks-combinations_" + str(method) + "_" + str(test_window_size) + ".json")
+        if not runtime_simulation:
+            # Specify paths
+            data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+            resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+            attack_path = os.path.join(resample_path, dtw_attack.name)
+            processing_path = os.path.join(attack_path, data_processing.name)
+            if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+                processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
+            precision_path = os.path.join(processing_path, "precision")
+            method_path = os.path.join(precision_path, method)
+            window_path = os.path.join(method_path, "window-size=" + str(test_window_size))
+            os.makedirs(window_path, exist_ok=True)
+            path_string = ("SW-DTW_realistic-ranks-combinations_" + str(method) + "_" + str(test_window_size) + ".json")
 
-        # Try to load existing results
-        if os.path.exists(os.path.join(window_path, path_string)):
-            f = open(os.path.join(window_path, path_string), "r")
-            realistic_ranks_comb = json.loads(f.read())
-            realistic_ranks_comb = realistic_ranks_comb[rank_method]
+            # Try to load existing results
+            if os.path.exists(os.path.join(window_path, path_string)):
+                f = open(os.path.join(window_path, path_string), "r")
+                realistic_ranks_comb = json.loads(f.read())
+                realistic_ranks_comb = realistic_ranks_comb[rank_method]
 
-        # Calculate and save results if not available
+            # Calculate and save results if not available
+            else:
+                realistic_ranks_comb = dict()
+                for ranking_method in ["rank", "score"]:
+                    realistic_ranks_comb.setdefault(ranking_method, dict())
+
+                    # Parallelization
+                    with Parallel(n_jobs=n_jobs) as parallel:
+                        results = parallel(
+                            delayed(parallel_calculation)(current_subject_id=subject_id,
+                                                          current_rank_method=ranking_method)
+                            for subject_id in subject_ids)
+
+                    overall_ranks_comb = dict()
+                    for res in results:
+                        overall_ranks_comb.setdefault(list(res.keys())[0], list(res.values())[0])
+
+                    for subject_id in overall_ranks_comb:
+                        for sensor, subject_rank in overall_ranks_comb[subject_id].items():
+                            if sensor not in realistic_ranks_comb[ranking_method]:
+                                realistic_ranks_comb[ranking_method].setdefault(sensor, list())
+                            realistic_ranks_comb[ranking_method][sensor].append(realistic_rank(subject_rank,
+                                                                                               subject_id))
+
+                # Save interim results as JSON-File
+                with open(os.path.join(window_path, path_string), "w", encoding="utf-8") as outfile:
+                    json.dump(realistic_ranks_comb, outfile)
+
+                print("SW-DTW rank-results saved at: " + str(os.path.join(window_path, path_string)))
+
+                realistic_ranks_comb = realistic_ranks_comb[rank_method]
+
+        # Simulate isolated attack
         else:
+            overall_ranks_comb = parallel_calculation(current_subject_id=subject_ids[0],
+                                                      current_rank_method=rank_method)
             realistic_ranks_comb = dict()
-            for ranking_method in ["rank", "score"]:
-                realistic_ranks_comb.setdefault(ranking_method, dict())
-
-                # Parallelization
-                with Parallel(n_jobs=n_jobs) as parallel:
-                    results = parallel(
-                        delayed(parallel_calculation)(current_subject_id=subject_id, current_rank_method=ranking_method)
-                        for subject_id in subject_ids)
-
-                overall_ranks_comb = dict()
-                for res in results:
-                    overall_ranks_comb.setdefault(list(res.keys())[0], list(res.values())[0])
-
-                for subject_id in overall_ranks_comb:
-                    for sensor, subject_rank in overall_ranks_comb[subject_id].items():
-                        if sensor not in realistic_ranks_comb[ranking_method]:
-                            realistic_ranks_comb[ranking_method].setdefault(sensor, list())
-                        realistic_ranks_comb[ranking_method][sensor].append(realistic_rank(subject_rank, subject_id))
-
-            # Save interim results as JSON-File
-            with open(os.path.join(window_path, path_string), "w", encoding="utf-8") as outfile:
-                json.dump(realistic_ranks_comb, outfile)
-
-            print("SW-DTW rank-results saved at: " + str(os.path.join(window_path, path_string)))
-
-            realistic_ranks_comb = realistic_ranks_comb[rank_method]
+            for subject_id in overall_ranks_comb:
+                realistic_ranks_comb.setdefault(rank_method, dict())
+                for sensor, subject_rank in overall_ranks_comb[subject_id].items():
+                    if sensor not in realistic_ranks_comb[rank_method]:
+                        realistic_ranks_comb[rank_method].setdefault(sensor, list())
+                    realistic_ranks_comb[rank_method][sensor].append(realistic_rank(subject_rank, subject_id))
 
     # Rank-method == "max" (new calculation necessary):
     else:

@@ -15,8 +15,8 @@ cfg = Config.get()
 
 
 def load_results(dataset: Dataset, resample_factor: int, data_processing: DataProcessing, dtw_attack: DtwAttack,
-                 result_selection_method: str, subject_id: int, method: str, test_window_size: int) \
-        -> Dict[str, Dict[str, float]]:
+                 result_selection_method: str, subject_id: int, method: str, test_window_size: int,
+                 runtime_simulation: bool = False) -> Dict[str, Dict[str, float]]:
     """
     Load DTW-attack results from ../out/alignments/
     :param dataset: Specify dataset
@@ -28,6 +28,7 @@ def load_results(dataset: Dataset, resample_factor: int, data_processing: DataPr
     :param subject_id: Specify subject
     :param method: Specify method ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
+    :param runtime_simulation: If True -> only simulate isolated attack
     :return: Dictionary with results
     """
     subject_ids = dataset.subject_list
@@ -42,6 +43,8 @@ def load_results(dataset: Dataset, resample_factor: int, data_processing: DataPr
         attack_path = os.path.join(resample_path, dtw_attack.name)
         processing_path = os.path.join(attack_path, data_processing.name)
         alignment_path = os.path.join(processing_path, "alignments")
+        if runtime_simulation:
+            alignment_path = os.path.join(alignment_path, "isolated_simulation")
         method_path = os.path.join(alignment_path, str(method))
 
         path_string = "SW-DTW_results_standard_" + str(method) + "_" + str(test_window_size) + ".json"

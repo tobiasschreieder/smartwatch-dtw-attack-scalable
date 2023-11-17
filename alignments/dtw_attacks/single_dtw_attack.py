@@ -27,7 +27,7 @@ class SingleDtwAttack(DtwAttack):
         super().__init__()
 
         self.name = "Single-DTW-Attack"
-        self.windows = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 31, 32, 33, 34, 35, 36]
+        self.windows = [i for i in range(1, 37)]
 
     @classmethod
     def create_subject_data(cls, data_dict: Dict[int, pd.DataFrame], method: str, test_window_size: int,
@@ -192,7 +192,7 @@ class SingleDtwAttack(DtwAttack):
 
     def run_calculations(self, dataset: Dataset, test_window_sizes: List[int], data_processing: DataProcessing,
                          resample_factor: int = 1, additional_windows: int = 1000, n_jobs: int = -1,
-                         methods: List[str] = None, subject_ids: List[int] = None, use_dba: bool = False):
+                         methods: List[str] = None, subject_ids: List[int] = None, runtime_simulation: bool = False):
         """
         Run DTW-calculations with all given parameters and save results as json
         :param dataset: Specify dataset, which should be used
@@ -203,7 +203,7 @@ class SingleDtwAttack(DtwAttack):
         :param n_jobs: Number of processes to use (parallelization)
         :param methods:  List with all method that should be used -> "non-stress" / "stress" (str)
         :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
-        :param use_dba: If True use Dynamic Time Warping Barycenter Averaging
+        :param runtime_simulation: If True -> only simulate isolated attack and save runtime
         """
         def parallel_calculation(current_subject_id: int) -> Dict[int, Dict[int, Dict[str, float]]]:
             """
@@ -252,6 +252,8 @@ class SingleDtwAttack(DtwAttack):
                     attack_path = os.path.join(resample_path, self.name)
                     processing_path = os.path.join(attack_path, data_processing.name)
                     alignments_path = os.path.join(processing_path, "alignments")
+                    if runtime_simulation:
+                        alignments_path = os.path.join(alignments_path, "isolated_simulation")
 
                     method_path = os.path.join(alignments_path, str(method))
                     runtime_path = os.path.join(alignments_path, "runtime")
@@ -259,14 +261,15 @@ class SingleDtwAttack(DtwAttack):
                     os.makedirs(method_path, exist_ok=True)
 
                     try:
-                        # Save Runtime as TXT
-                        runtime_file_name = "runtime_window_size=" + str(test_window_size) + ".txt"
-                        runtime_save_path = os.path.join(runtime_path, runtime_file_name)
+                        if not runtime_simulation:
+                            # Save Runtime as TXT
+                            runtime_file_name = "runtime_window_size=" + str(test_window_size) + ".txt"
+                            runtime_save_path = os.path.join(runtime_path, runtime_file_name)
 
-                        text_file = open(runtime_save_path, "w")
-                        text = "Runtime: " + str(end - start)
-                        text_file.write(text)
-                        text_file.close()
+                            text_file = open(runtime_save_path, "w")
+                            text = "Runtime: " + str(end - start)
+                            text_file.write(text)
+                            text_file.close()
 
                         # Save results as JSON
                         path_string_standard = "SW-DTW_results_standard_" + str(method) + "_" + str(
