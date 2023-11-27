@@ -31,9 +31,9 @@ def plot_subject_data(dataset: Dataset, resample_factor: int, data_processing: D
     for subject in data_dict:
         plt.plot(data_dict[subject])
         plt.legend(data_dict[subject].keys(), loc="center left")
-        plt.title(label="Sensor-value distribution for subject: " + str(subject), loc="center")
-        plt.ylabel('normalized sensor values (label=1: stress)')
-        plt.xlabel('index | time')
+        plt.title(label="Signal Data for Subject: " + str(subject), loc="center")
+        plt.ylabel('Normalized Sensor Value (label=1.0: stress)')
+        plt.xlabel('Window')
 
         try:
             os.makedirs(eda_path, exist_ok=True)
