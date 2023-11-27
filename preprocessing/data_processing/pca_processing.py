@@ -36,11 +36,16 @@ class PcaProcessing(DataProcessing):
         for subject in data_dict:
             label = data_dict[subject].label
             data = data_dict[subject].drop(columns=["label"])
+
             normalizer = preprocessing.StandardScaler().fit(data)
             data = normalizer.transform(data)
             pca = PCA(n_components=pca_components)
             data_pca = pca.fit_transform(data)
             data_pca = pd.DataFrame(data_pca, columns=pca_columns).assign(label=label)
+
+            # Min-Max Normalization of PCA data
+            data_pca = (data_pca - data_pca.min()) / (data_pca.max() - data_pca.min())
+
             pca_dict.setdefault(subject, data_pca)
 
         return pca_dict
