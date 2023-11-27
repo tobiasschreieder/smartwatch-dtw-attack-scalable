@@ -24,7 +24,7 @@ Example Calculations
 # Specify parameters
 dataset = Wesad(dataset_size=15)
 resample_factor = 1000
-data_processing = PcaProcessing()
+data_processing = DbaProcessing()
 dtw_attack = SingleDtwAttack()
 result_selection_method = "min"
 
