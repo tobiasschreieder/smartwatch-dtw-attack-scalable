@@ -4,6 +4,7 @@ from preprocessing.data_processing.pca_processing import PcaProcessing
 from preprocessing.datasets.load_wesad import Wesad
 from preprocessing.datasets.load_cgan import WesadCGan
 from preprocessing.datasets.load_dgan import WesadDGan
+from preprocessing.datasets.load_combined import WesadCombined
 from alignments.dtw_attacks.single_dtw_attack import SingleDtwAttack
 from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
 from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack

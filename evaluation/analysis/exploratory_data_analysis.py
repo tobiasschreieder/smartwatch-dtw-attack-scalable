@@ -70,9 +70,10 @@ def plot_distance_heatmap(dataset: Dataset, resample_factor: int, data_processin
 
     # Plot heatmap
     fig, ax = plt.subplots()
-    im = ax.imshow(data_array)  # cmap=plt.cm.Blues
+    im = ax.imshow(data_array, vmin=0.0, vmax=2.5)  # cmap=plt.cm.Blues
     axis = list(range(1, len(subject_ids) + 1))
     ax.set_xticks(np.arange(len(axis)), labels=axis)
+    plt.xticks(rotation=90)
     ax.set_yticks(np.arange(len(axis)), labels=axis)
 
     for i in range(len(subject_ids)):

@@ -3,6 +3,7 @@ from preprocessing.data_processing.standard_processing import StandardProcessing
 from preprocessing.datasets.dataset import Dataset
 from preprocessing.datasets.load_wesad import Wesad
 from preprocessing.datasets.load_dgan import WesadDGan
+from preprocessing.datasets.load_cgan import WesadCGan
 from config import Config
 
 from typing import Dict, List
@@ -16,7 +17,7 @@ cfg = Config.get()
 
 
 # List with all available subject_ids
-SUBJECT_LIST = Wesad(dataset_size=15).subject_list + WesadDGan(dataset_size=100).subject_list
+SUBJECT_LIST = Wesad(dataset_size=15).subject_list + WesadCGan(dataset_size=15).subject_list
 
 # All available classes
 CLASSES = Wesad(dataset_size=15).get_classes()
@@ -34,6 +35,7 @@ class WesadCombined(Dataset):
         super().__init__(dataset_size=dataset_size)
 
         self.name = "WESAD-Combined"
+        self.subject_list = SUBJECT_LIST
 
         try:
             with open(os.path.join(cfg.data_dir, 'wesad_combined_data.pickle'), "rb") as f:
@@ -46,7 +48,7 @@ class WesadCombined(Dataset):
             # Load data of all subjects in subject_list
             wesad_data = Wesad(dataset_size=dataset_size).load_dataset(resample_factor=1,
                                                                        data_processing=StandardProcessing())
-            wesad_gan_data = WesadDGan(dataset_size=dataset_size).load_dataset(resample_factor=1,
+            wesad_gan_data = WesadCGan(dataset_size=dataset_size).load_dataset(resample_factor=1,
                                                                                data_processing=StandardProcessing())
             data_dict = wesad_data
             for k, v in wesad_gan_data.items():
