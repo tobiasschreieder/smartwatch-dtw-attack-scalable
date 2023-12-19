@@ -6,6 +6,8 @@ from alignments.dtw_attacks.dtw_attack import DtwAttack
 from alignments.dtw_attacks.single_dtw_attack import SingleDtwAttack
 from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
 from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack
+from preprocessing.datasets.load_cgan import WesadCGan
+from preprocessing.datasets.load_dgan import WesadDGan
 from config import Config
 
 from typing import List
@@ -75,7 +77,8 @@ def simulate_isolated_dtw_attack(dataset: Dataset, resample_factor: int, data_pr
         Simulate DTW-Attack for specified Attack
         :param dtw_attack: Specify DTW-attack (SingleDtwAttack, MultiDtwAttack, SlicingDtwAttack)
         """
-        best_configurations = calculate_best_configurations(dataset=dataset, resample_factor=resample_factor,
+        best_configurations = calculate_best_configurations(dataset=configuration_dataset,
+                                                            resample_factor=resample_factor,
                                                             data_processing=data_processing, dtw_attack=dtw_attack,
                                                             result_selection_method=result_selection_method,
                                                             standardized_evaluation=True, n_jobs=n_jobs)
@@ -129,6 +132,12 @@ def simulate_isolated_dtw_attack(dataset: Dataset, resample_factor: int, data_pr
     # Parameters
     methods = ["non_stress"]
     subject_ids = [dataset.subject_list[0]]
+    if dataset.name == "WESAD-cGAN":
+        configuration_dataset = WesadCGan(dataset_size=15)
+    elif dataset.name == "WESAD-dGAN":
+        configuration_dataset = WesadDGan(dataset_size=15)
+    else:
+        configuration_dataset = dataset
 
     # Single-DTW-Attack
     single_dtw_attack = SingleDtwAttack()
