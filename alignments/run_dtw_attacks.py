@@ -6,6 +6,7 @@ from alignments.dtw_attacks.dtw_attack import DtwAttack
 from alignments.dtw_attacks.single_dtw_attack import SingleDtwAttack
 from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
 from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack
+from alignments.dtw_attacks.multi_slicing_dtw_attack import MultiSlicingDtwAttack
 from preprocessing.datasets.load_cgan import WesadCGan
 from preprocessing.datasets.load_dgan import WesadDGan
 from config import Config
@@ -57,6 +58,14 @@ def run_dtw_attack(dtw_attack: DtwAttack, dataset: Dataset, resample_factor: int
                                             resample_factor=resample_factor, data_processing=data_processing,
                                             additional_windows=additional_windows, n_jobs=n_jobs, methods=methods,
                                             subject_ids=subject_ids)
+
+    elif dtw_attack.name == MultiSlicingDtwAttack().name:
+        print("Starting Multi-Slicing-DTW-Attack!")
+        multi_slicing_dtw_attack = MultiSlicingDtwAttack()
+        multi_slicing_dtw_attack.run_calculations(dataset=dataset, test_window_sizes=test_window_sizes, multi=multi,
+                                                  resample_factor=resample_factor, data_processing=data_processing,
+                                                  additional_windows=additional_windows, n_jobs=n_jobs, methods=methods,
+                                                  subject_ids=subject_ids)
 
     else:
         print("Please specify a valid DTW-Attack!")
@@ -144,12 +153,17 @@ def simulate_isolated_dtw_attack(dataset: Dataset, resample_factor: int, data_pr
     result_selection_method = "min"
     run_isolated_attack(dtw_attack=single_dtw_attack)
 
-    # Single-DTW-Attack
+    # Multi-DTW-Attack
     multi_dtw_attack = MultiDtwAttack()
     result_selection_method = "mean"
     run_isolated_attack(dtw_attack=multi_dtw_attack)
 
-    # Single-DTW-Attack
+    # Slicing-DTW-Attack
     slicing_dtw_attack = SlicingDtwAttack()
     result_selection_method = "min"
     run_isolated_attack(dtw_attack=slicing_dtw_attack)
+
+    # Multi-Slicing-DTW-Attack
+    multi_slicing_dtw_attack = MultiSlicingDtwAttack()
+    result_selection_method = "min"
+    run_isolated_attack(dtw_attack=multi_slicing_dtw_attack)

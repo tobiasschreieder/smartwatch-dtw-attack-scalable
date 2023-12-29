@@ -243,7 +243,7 @@ def create_md_precision_classes(rank_method: str, results: Dict[int, Dict[str, f
         text += "| " + str(k) + " | " + str(results[k]["non-stress"]) + " | " + str(results[k]["stress"]) + " |" + "\n"
 
     text += ("| max@k | " + "k = " + str(best_k_parameters["non-stress"]) + " | " + "k = " +
-             "k = " + str(best_k_parameters["stress"]) + " |" + "\n")
+             str(best_k_parameters["stress"]) + " |" + "\n")
 
     text += "## Overall Evaluation: \n"
     text += "### Precision@k table: \n"

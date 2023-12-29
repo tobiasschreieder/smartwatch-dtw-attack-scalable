@@ -8,6 +8,7 @@ from preprocessing.datasets.load_combined import WesadCombined
 from alignments.dtw_attacks.single_dtw_attack import SingleDtwAttack
 from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
 from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack
+from alignments.dtw_attacks.multi_slicing_dtw_attack import MultiSlicingDtwAttack
 from alignments.run_dtw_attacks import run_dtw_attack, simulate_isolated_dtw_attack
 from alignments.dtw_alignment import run_dtw_alignments
 from evaluation.analysis.exploratory_data_analysis import plot_distance_heatmap, plot_subject_data
@@ -26,15 +27,15 @@ Example Calculations
 dataset = Wesad(dataset_size=15)
 resample_factor = 1000
 data_processing = StandardProcessing()
-dtw_attack = SingleDtwAttack()
-result_selection_method = "min"
+dtw_attack = MultiSlicingDtwAttack()
+result_selection_method = "mean"
 
 
 start = time.perf_counter()
 
 """1. Calculate DTW-alignments and save results to /out/alignments"""
 # run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing,
-#                test_window_sizes=[12, 24, 36], resample_factor=resample_factor, multi=3)
+#                test_window_sizes=[i for i in range(1, 13)], resample_factor=resample_factor, multi=3)
 
 """2. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
 # run_dtw_alignments(dataset=dataset, data_processing=data_processing, resample_factor=resample_factor)

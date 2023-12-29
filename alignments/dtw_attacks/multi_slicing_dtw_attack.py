@@ -28,11 +28,11 @@ class MultiSlicingDtwAttack(DtwAttack):
         super().__init__()
 
         self.name = "Multi-Slicing-DTW-Attack"
-        self.windows = [i for i in range(1, 37)]
+        self.windows = [i for i in range(1, 13)]
 
     @classmethod
     def create_subject_data(cls, data_dict: Dict[int, pd.DataFrame], method: str, test_window_size: int,
-                            subject_id: int, additional_windows: int = 1000, resample_factor: int = 1) \
+                            subject_id: int, multi: int = 3, additional_windows: int = 1000, resample_factor: int = 1) \
             -> Tuple[Dict[str, Any], Dict[int, Dict[str, int]]]:
         """
         Create dictionary with all subjects and their sensor data as Dataframe split into train and test data
@@ -41,6 +41,7 @@ class MultiSlicingDtwAttack(DtwAttack):
         :param method: String to specify which method should be used (non-stress / stress)
         :param test_window_size: Specify amount of windows (datapoints) in test set (int)
         :param subject_id: Specify which subject should be used as test subject
+        :param multi: Specify number of combined single attacks
         :param additional_windows: Specify amount of additional windows to be removed around test-window
         :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
         :return: Tuple with create subject_data and labels (containing label information)
@@ -63,6 +64,11 @@ class MultiSlicingDtwAttack(DtwAttack):
                 t_id += 1
 
             return train_dict
+
+        if multi <= 2:
+            multi = 2
+            print("Invalid number of combined attacks (multi)! Multi needs to be >= 2.")
+            print("Set multi = 2!")
 
         subject_data = {"train": dict(), "test": dict(), "method": method}
         labels = dict()
@@ -93,25 +99,33 @@ class MultiSlicingDtwAttack(DtwAttack):
                     label_data = label_data[label_data.label == 1]  # Data for subject with label == 1 -> stress
 
                 # Create test and train data
-                test_windows = test_window_size
+                test_windows = test_window_size * multi
                 half_data_length = round(len(label_data) / 2)
                 resampled_additional_windows = max(1, int(round(additional_windows / resample_factor)))
 
                 start = int(half_data_length - (test_windows / 2))
                 end = int(half_data_length + (test_windows / 2))
-                test = label_data.iloc[start: end]
+                test_combined = label_data.iloc[start: end]
                 remove = label_data.iloc[start - resampled_additional_windows: end + resampled_additional_windows]
+
+                test_combined_2 = test_combined.reset_index(drop=True)
+                test_dict = dict()
+                for m in range(0, multi):
+                    test = test_combined_2.iloc[(m * test_window_size): (m * test_window_size + test_window_size)]
+                    test_dict.setdefault(m, test)
 
                 train = data_dict[subject].drop(remove.index)
                 train_dict = split_train_data(train_data=train)
 
                 # Create labels dictionary
-                for sensor in test:
-                    test_subject = test[sensor].to_frame()
+                for sensor in label_data:
                     if sensor != "label":
                         subject_data["train"].setdefault(subject, dict())
                         subject_data["test"].setdefault(subject, dict())
-                        subject_data["test"][subject].setdefault(sensor, test_subject)
+                        for test_id, test in test_dict.items():
+                            subject_data["test"][subject].setdefault(test_id, dict())
+                            test_subject = test[sensor].to_frame()
+                            subject_data["test"][subject][test_id].setdefault(sensor, test_subject)
                         for train_id, test in train_dict.items():
                             subject_data["train"][subject].setdefault(train_id, dict())
                             train_subject = train_dict[train_id][sensor].to_frame()
@@ -120,8 +134,8 @@ class MultiSlicingDtwAttack(DtwAttack):
                     else:
                         train_stress = (train["label"] == 1).sum()
                         train_non_stress = (train["label"] == 0).sum()
-                        test_stress = (test["label"] == 1).sum()
-                        test_non_stress = (test["label"] == 0).sum()
+                        test_stress = (test_combined["label"] == 1).sum()
+                        test_non_stress = (test_combined["label"] == 0).sum()
                         labels.setdefault(subject, {"test_stress": test_stress, "test_non_stress": test_non_stress,
                                                     "train_stress": train_stress, "train_non_stress": train_non_stress})
 
@@ -129,13 +143,14 @@ class MultiSlicingDtwAttack(DtwAttack):
 
     @classmethod
     def test_max_window_size(cls, data_dict: Dict[int, pd.DataFrame], test_window_sizes: List[int],
-                             additional_windows: int, resample_factor: int) -> bool:
+                             additional_windows: int, resample_factor: int, multi: int = 3) -> bool:
         """
         Test all given test window-sizes if they are valid
         :param data_dict: Dictionary with preprocessed dataset
         :param test_window_sizes: List with all test_window-sizes to be tested
         :param additional_windows: Specify amount of additional windows to be removed around test-window
         :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+        :param multi: Specify number of combined single attacks
         :return: Boolean -> False if there is at least one wrong test window-size
         """
         additional_windows = max(1, int(round(additional_windows / resample_factor)))
@@ -154,7 +169,7 @@ class MultiSlicingDtwAttack(DtwAttack):
         # Test all test-window-sizes
         valid_windows = True
         for test_window_size in test_window_sizes:
-            if test_window_size <= 0 or test_window_size > min_method_length:
+            if test_window_size * multi <= 0 or test_window_size * multi > min_method_length:
                 valid_windows = False
                 print("Wrong test-window-size: " + str(test_window_size))
 
@@ -162,62 +177,74 @@ class MultiSlicingDtwAttack(DtwAttack):
 
     @classmethod
     def calculate_alignment(cls, data_dict: Dict[int, pd.DataFrame], subject_id: int, method: str,
-                            test_window_size: int, resample_factor: int = 1, additional_windows: int = 1000) \
-            -> Dict[int, Dict[str, float]]:
+                            test_window_size: int, multi: int = 3, resample_factor: int = 1,
+                            additional_windows: int = 1000) -> Dict[int, Dict[str, float]]:
         """
         Calculate DTW-Alignments for sensor data using Dynamic Time Warping
         :param data_dict: Dictionary with preprocessed dataset
         :param subject_id: Specify which subject should be used as test subject
         :param method: String to specify which method should be used (non-stress / stress)
         :param test_window_size: Specify amount of windows (datapoints) in test set (int)
+        :param multi: Specify number of combined single attacks
         :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
         :param additional_windows: Specify amount of additional windows to be removed around test-window
         :return: Tuple with Dictionaries of standard and normalized results
         """
         results_standard = dict()
         subject_data, labels = cls.create_subject_data(data_dict=data_dict, method=method,
-                                                       test_window_size=test_window_size, subject_id=subject_id,
-                                                       additional_windows=additional_windows,
+                                                       test_window_size=test_window_size, multi=multi,
+                                                       subject_id=subject_id, additional_windows=additional_windows,
                                                        resample_factor=resample_factor)
 
         for subject in subject_data["train"]:
             results_standard.setdefault(subject, dict())
 
-            for sensor in subject_data["test"][subject_id]:
-                test = subject_data["test"][subject_id][sensor]
-                test = test.values.flatten()
+            for sensor in subject_data["test"][subject_id][0]:
+                for test_multi in subject_data["test"][subject_id]:
+                    test = subject_data["test"][subject_id][test_multi][sensor]
+                    test = test.values.flatten()
 
-                for train_slice in subject_data["train"][subject]:
-                    train = subject_data["train"][subject][train_slice][sensor]
-                    train = train.values.flatten()
+                    results_standard[subject].setdefault(test_multi, dict())
+                    for train_slice in subject_data["train"][subject]:
+                        train = subject_data["train"][subject][train_slice][sensor]
+                        train = train.values.flatten()
 
-                    distance_standard = dtw.distance_fast(train, test)
-                    results_standard[subject].setdefault(train_slice, dict())
-                    results_standard[subject][train_slice].setdefault(sensor, round(distance_standard, 4))
+                        distance_standard = dtw.distance_fast(train, test)
+                        results_standard[subject][test_multi].setdefault(train_slice, dict())
+                        results_standard[subject][test_multi][train_slice].setdefault(sensor,
+                                                                                      round(distance_standard, 4))
 
         # Calculate average distances
         for subject in results_standard:
-            results_standard[subject].setdefault("mean", dict())
-            results_standard[subject].setdefault("min", dict())
-            for sensor in results_standard[subject][0]:
+            for sensor in results_standard[subject][0][0]:
                 sensor_results = list()
-                for train_slice in results_standard[subject]:
-                    if train_slice != "mean" and train_slice != "min":
-                        sensor_results.append(results_standard[subject][train_slice][sensor])
+                for test_multi in results_standard[subject]:
+                    results_standard[subject][test_multi].setdefault("min", dict())
+                    for train_slice in results_standard[subject][test_multi]:
+                        if train_slice != "min":
+                            sensor_results.append(results_standard[subject][test_multi][train_slice][sensor])
+                        results_standard[subject][test_multi]["min"].setdefault(sensor, round(min(sensor_results), 4))
 
-                results_standard[subject]["mean"].setdefault(sensor, round(statistics.mean(sensor_results), 4))
-                results_standard[subject]["min"].setdefault(sensor, round(min(sensor_results), 4))
+        for subject in results_standard:
+            for sensor in results_standard[subject][0][0]:
+                sensor_results = list()
+                results_standard[subject].setdefault("mean", dict())
+                for test_multi in results_standard[subject]:
+                    if test_multi != "mean":
+                        sensor_results.append(results_standard[subject][test_multi]["min"][sensor])
+                results_standard[subject]["mean"].setdefault(sensor, round(min(sensor_results), 4))
 
         return results_standard
 
     def run_calculations(self, dataset: Dataset, test_window_sizes: List[int], data_processing: DataProcessing,
-                         resample_factor: int = 1, additional_windows: int = 1000, n_jobs: int = -1,
+                         multi: int = 3, resample_factor: int = 1, additional_windows: int = 1000, n_jobs: int = -1,
                          methods: List[str] = None, subject_ids: List[int] = None, runtime_simulation: bool = False):
         """
         Run DTW-calculations with all given parameters and save results as json
         :param dataset: Specify dataset, which should be used
         :param test_window_sizes: List with all test windows that should be used (int)
         :param data_processing: Specify type of data-processing
+        :param multi: Specify number of combined single attacks
         :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
         :param additional_windows: Specify amount of additional windows to be removed around test-window
         :param n_jobs: Number of processes to use (parallelization)
@@ -232,8 +259,8 @@ class MultiSlicingDtwAttack(DtwAttack):
             :return: Dictionary with results
             """
             result = self.calculate_alignment(data_dict=data_dict, subject_id=current_subject_id, method=method,
-                                              test_window_size=test_window_size, additional_windows=additional_windows,
-                                              resample_factor=resample_factor)
+                                              test_window_size=test_window_size, multi=multi,
+                                              additional_windows=additional_windows, resample_factor=resample_factor)
             results_subject = {current_subject_id: result}
 
             return results_subject
@@ -245,7 +272,7 @@ class MultiSlicingDtwAttack(DtwAttack):
 
         data_dict = dataset.load_dataset(resample_factor=resample_factor, data_processing=data_processing)
 
-        if self.test_max_window_size(data_dict=data_dict, test_window_sizes=test_window_sizes,
+        if self.test_max_window_size(data_dict=data_dict, test_window_sizes=test_window_sizes, multi=multi,
                                      resample_factor=resample_factor, additional_windows=additional_windows):
             print("Test-window-size test successful: All test-window-sizes are valid")
 

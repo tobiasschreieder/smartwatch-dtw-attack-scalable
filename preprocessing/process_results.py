@@ -3,6 +3,7 @@ from preprocessing.datasets.dataset import Dataset
 from alignments.dtw_attacks.dtw_attack import DtwAttack
 from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
 from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack
+from alignments.dtw_attacks.multi_slicing_dtw_attack import MultiSlicingDtwAttack
 from config import Config
 
 import json
@@ -55,7 +56,8 @@ def load_results(dataset: Dataset, resample_factor: int, data_processing: DataPr
         results = results_complete[str(subject_id)]
 
         # If Multi-DTW-Attack or Slicing Attack just use mean results
-        if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+        if (dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name or
+                dtw_attack.name == MultiSlicingDtwAttack().name):
             multi_dtw_attack_results = dict()
             for subject in results:
                 multi_dtw_attack_results.setdefault(subject, results[subject][result_selection_method])
