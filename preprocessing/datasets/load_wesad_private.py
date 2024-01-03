@@ -27,7 +27,7 @@ class WesadPrivate(Dataset):
         """
         Try to load preprocessed WESAD dataset (wesad_data.pickle); if not available -> generate wesad_data.pickle
         :param dataset_size: Specify amount of subjects in dataset
-        :param noise_multiplier: Specify noise multiplier (scale parameter) of laplace distribution
+        :param noise_multiplier: Specify noise multiplier (scale parameter) of laplace distribution (> 0.0)
         """
         super().__init__(dataset_size=dataset_size)
 

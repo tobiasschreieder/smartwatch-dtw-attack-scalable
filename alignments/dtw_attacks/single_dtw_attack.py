@@ -1,5 +1,6 @@
 from preprocessing.data_processing.data_processing import DataProcessing
 from preprocessing.datasets.dataset import Dataset
+from preprocessing.datasets.load_wesad import Wesad
 from alignments.dtw_attacks.dtw_attack import DtwAttack
 from config import Config
 
@@ -157,17 +158,19 @@ class SingleDtwAttack(DtwAttack):
         return valid_windows
 
     @classmethod
-    def calculate_alignment(cls, data_dict: Dict[int, pd.DataFrame], subject_id: int, method: str,
-                            test_window_size: int, resample_factor: int = 1, additional_windows: int = 1000) \
-            -> Dict[int, Dict[str, float]]:
+    def calculate_alignment(cls, data_dict: Dict[int, pd.DataFrame], data_processing: DataProcessing, subject_id: int,
+                            method: str, test_window_size: int, resample_factor: int = 1,
+                            additional_windows: int = 1000, private: bool = False) -> Dict[int, Dict[str, float]]:
         """
         Calculate DTW-Alignments for sensor data using Dynamic Time Warping
         :param data_dict: Dictionary with preprocessed dataset
+        :param data_processing: Specify type of data-processing
         :param subject_id: Specify which subject should be used as test subject
         :param method: String to specify which method should be used (non-stress / stress)
         :param test_window_size: Specify amount of windows (datapoints) in test set (int)
         :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
         :param additional_windows: Specify amount of additional windows to be removed around test-window
+        :param private: If True -> Calculate alignments with noisy dataset and original attack data
         :return: Tuple with Dictionaries of standard and normalized results
         """
         results_standard = dict()
@@ -176,13 +179,28 @@ class SingleDtwAttack(DtwAttack):
                                                        additional_windows=additional_windows,
                                                        resample_factor=resample_factor)
 
+        # If private = True -> Load original Wesad dataset for attack data
+        if private:
+            wesad_dict = Wesad(dataset_size=15).load_dataset(data_processing=data_processing,
+                                                             resample_factor=resample_factor)
+            subject_data_attack, labels_attack = cls.create_subject_data(data_dict=wesad_dict, method=method,
+                                                                         test_window_size=test_window_size,
+                                                                         subject_id=subject_id,
+                                                                         additional_windows=additional_windows,
+                                                                         resample_factor=resample_factor)
+
         for subject in subject_data["train"]:
             results_standard.setdefault(subject, dict())
 
             for sensor in subject_data["train"][subject]:
-                test = subject_data["test"][subject_id][sensor]
+                if private:
+                    test = subject_data_attack["test"][subject_id][sensor]
+                    test = test.values.flatten()
+                else:
+                    test = subject_data["test"][subject_id][sensor]
+                    test = test.values.flatten()
+
                 train = subject_data["train"][subject][sensor]
-                test = test.values.flatten()
                 train = train.values.flatten()
 
                 distance_standard = dtw.distance_fast(train, test)
@@ -211,9 +229,10 @@ class SingleDtwAttack(DtwAttack):
             :param current_subject_id: Specify subject_id
             :return: Dictionary with results
             """
-            result = self.calculate_alignment(data_dict=data_dict, subject_id=current_subject_id, method=method,
+            result = self.calculate_alignment(data_dict=data_dict, data_processing=data_processing,
+                                              subject_id=current_subject_id, method=method,
                                               test_window_size=test_window_size, additional_windows=additional_windows,
-                                              resample_factor=resample_factor)
+                                              resample_factor=resample_factor, private=private)
             results_subject = {current_subject_id: result}
 
             return results_subject
@@ -222,6 +241,11 @@ class SingleDtwAttack(DtwAttack):
             subject_ids = dataset.subject_list
         if methods is None:
             methods = dataset.get_classes()
+
+        # Specify if noisy alignments (noisy dataset and original attack data) should be used
+        private = False
+        if "WESAD-p" in dataset.name:
+            private = True
 
         data_dict = dataset.load_dataset(resample_factor=resample_factor, data_processing=data_processing)
 
