@@ -31,7 +31,7 @@ class WesadPrivate(Dataset):
         """
         super().__init__(dataset_size=dataset_size)
 
-        self.name = "WESAD-Private"
+        self.name = "WESAD-p" + str(noise_multiplier)
 
         # List with all available subject_ids
         subject_list = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17]
@@ -41,7 +41,7 @@ class WesadPrivate(Dataset):
         subject_list = subject_list[:dataset_size]
         self.subject_list = subject_list
 
-        filename = "wesad_private_data_" + str(dataset_size) + "_" + str(noise_multiplier) + ".pickle"
+        filename = "wesad_p" + str(noise_multiplier) + "_" + str(dataset_size) + ".pickle"
 
         try:
             with open(os.path.join(cfg.data_dir, filename), "rb") as f:
@@ -54,13 +54,16 @@ class WesadPrivate(Dataset):
             wesad_data = Wesad(dataset_size=15).load_dataset(resample_factor=1, data_processing=StandardProcessing())
             wesad_private = dict()
             for subject_id in wesad_data:
-                columns = wesad_data[subject_id].columns
-                signal = wesad_data[subject_id].to_numpy()
+                label = wesad_data[subject_id]["label"]
+                signal = wesad_data[subject_id].drop("label", axis=1)  # Label should not be changed wth noise
+                columns = signal.columns
+                signal = signal.to_numpy()
                 signal = signal.transpose()
 
                 noisy_signal = create_noisy_data(data=signal, noise_multiplier=noise_multiplier)
                 noisy_signal = noisy_signal.transpose()
                 noisy_data = pd.DataFrame(data=noisy_signal, columns=columns)
+                noisy_data["label"] = label
                 wesad_private.setdefault(subject_id, noisy_data)
 
             self.data = wesad_private

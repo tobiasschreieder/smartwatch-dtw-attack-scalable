@@ -25,11 +25,11 @@ Example Calculations
 ------------------------------------------------------------------------------------------------------------------------
 """
 # Specify parameters
-dataset = WesadPrivate(dataset_size=15, noise_multiplier=1.0)
+dataset = WesadPrivate(dataset_size=15, noise_multiplier=15.0)
 resample_factor = 1000
 data_processing = StandardProcessing()
 dtw_attack = SlicingDtwAttack()
-result_selection_method = "mean"
+result_selection_method = "min"
 
 
 start = time.perf_counter()
