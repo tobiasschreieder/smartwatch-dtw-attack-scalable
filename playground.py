@@ -2,6 +2,7 @@ from preprocessing.data_processing.standard_processing import StandardProcessing
 from preprocessing.data_processing.dba_processing import DbaProcessing
 from preprocessing.data_processing.pca_processing import PcaProcessing
 from preprocessing.datasets.load_wesad import Wesad
+from preprocessing.datasets.load_wesad_private import WesadPrivate
 from preprocessing.datasets.load_cgan import WesadCGan
 from preprocessing.datasets.load_dgan import WesadDGan
 from preprocessing.datasets.load_combined import WesadCombined
@@ -24,10 +25,10 @@ Example Calculations
 ------------------------------------------------------------------------------------------------------------------------
 """
 # Specify parameters
-dataset = Wesad(dataset_size=15)
+dataset = WesadPrivate(dataset_size=15, noise_multiplier=1.0)
 resample_factor = 1000
 data_processing = StandardProcessing()
-dtw_attack = MultiSlicingDtwAttack()
+dtw_attack = SlicingDtwAttack()
 result_selection_method = "mean"
 
 
@@ -35,7 +36,7 @@ start = time.perf_counter()
 
 """1. Calculate DTW-alignments and save results to /out/alignments"""
 # run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing,
-#                test_window_sizes=[i for i in range(1, 13)], resample_factor=resample_factor, multi=3)
+#                test_window_sizes=[i for i in range(1, 37)], resample_factor=resample_factor, multi=3)
 
 """2. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
 # run_dtw_alignments(dataset=dataset, data_processing=data_processing, resample_factor=resample_factor)
