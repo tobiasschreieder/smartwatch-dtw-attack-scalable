@@ -56,57 +56,49 @@ class MultiDtwAttack(DtwAttack):
 
         for subject in data_dict:
             subject_data["train"].setdefault(subject, dict())
+            label_data = data_dict[subject]
 
-            if subject != subject_id:
-                sensor_data = dict()
-                for sensor in data_dict[subject]:
-                    if sensor != "label":
-                        sensor_data.setdefault(sensor, data_dict[subject][sensor])
-                subject_data["train"].setdefault(subject, dict())
-                subject_data["train"][subject] = sensor_data
+            # Method "non-stress"
+            if method == "non-stress":
+                label_data = label_data[label_data.label == 0]  # Data for subject with label == 0 -> non-stress
 
+            # Method "stress"
             else:
-                label_data = data_dict[subject]
+                label_data = label_data[label_data.label == 1]  # Data for subject with label == 1 -> stress
 
-                # Method "non-stress"
-                if method == "non-stress":
-                    label_data = label_data[label_data.label == 0]  # Data for subject with label == 0 -> non-stress
+            # Create test and train data
+            test_windows = test_window_size * multi
+            half_data_length = round(len(label_data) / 2)
+            resampled_additional_windows = max(1, int(round(additional_windows / resample_factor)))
 
-                # Method "stress"
-                else:
-                    label_data = label_data[label_data.label == 1]  # Data for subject with label == 1 -> stress
+            start = int(half_data_length - (test_windows / 2))
+            end = int(half_data_length + (test_windows / 2))
+            test_combined = label_data.iloc[start: end]
+            remove = label_data.iloc[start - resampled_additional_windows: end + resampled_additional_windows]
 
-                # Create test and train data
-                test_windows = test_window_size * multi
-                half_data_length = round(len(label_data) / 2)
-                resampled_additional_windows = max(1, int(round(additional_windows / resample_factor)))
+            test_combined_2 = test_combined.reset_index(drop=True)
+            test_dict = dict()
+            for m in range(0, multi):
+                test = test_combined_2.iloc[(m * test_window_size): (m * test_window_size + test_window_size)]
+                test_dict.setdefault(m, test)
 
-                start = int(half_data_length - (test_windows / 2))
-                end = int(half_data_length + (test_windows / 2))
-                test_combined = label_data.iloc[start: end]
-                remove = label_data.iloc[start - resampled_additional_windows: end + resampled_additional_windows]
+            train = data_dict[subject].drop(remove.index)
 
-                test_combined_2 = test_combined.reset_index(drop=True)
-                test_dict = dict()
-                for m in range(0, multi):
-                    test = test_combined_2.iloc[(m * test_window_size): (m * test_window_size + test_window_size)]
-                    test_dict.setdefault(m, test)
-
-                train = data_dict[subject].drop(remove.index)
-
-                # Create labels dictionary
-                for sensor in label_data:
-                    train_subject = train[sensor].to_frame()
-                    if sensor != "label":
-                        subject_data["train"].setdefault(subject, dict())
-                        subject_data["train"][subject].setdefault(sensor, train_subject)
+            # Create labels dictionary
+            for sensor in label_data:
+                train_subject = train[sensor].to_frame()
+                if sensor != "label":
+                    subject_data["train"].setdefault(subject, dict())
+                    subject_data["train"][subject].setdefault(sensor, train_subject)
+                    if subject == subject_id:
                         subject_data["test"].setdefault(subject, dict())
                         for test_id, test in test_dict.items():
                             subject_data["test"][subject].setdefault(test_id, dict())
                             test_subject = test[sensor].to_frame()
                             subject_data["test"][subject][test_id].setdefault(sensor, test_subject)
 
-                    else:
+                else:
+                    if subject == subject_id:
                         train_stress = (train["label"] == 1).sum()
                         train_non_stress = (train["label"] == 0).sum()
                         test_stress = (test_combined["label"] == 1).sum()

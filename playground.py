@@ -25,7 +25,7 @@ Example Calculations
 ------------------------------------------------------------------------------------------------------------------------
 """
 # Specify parameters
-dataset = WesadPrivate(dataset_size=15, noise_multiplier=1.0)
+dataset = Wesad(dataset_size=15)
 resample_factor = 1000
 data_processing = StandardProcessing()
 dtw_attack = SlicingDtwAttack()
@@ -34,17 +34,17 @@ result_selection_method = "min"
 
 start = time.perf_counter()
 
-"""1. Calculate DTW-alignments and save results to /out/alignments"""
+"""1. Calculate DTW-alignments and save results to /out_private/alignments"""
 # run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing,
-#                test_window_sizes=[i for i in range(1, 37)], resample_factor=resample_factor, multi=3)
+#                test_window_sizes=[i for i in range(1, 36)], resample_factor=resample_factor, multi=3)
 
-"""2. Calculate DTW-alignments over complete sensor signals and save results to /out/alignments/complete"""
+"""2. Calculate DTW-alignments over complete sensor signals and save results to /out_private/alignments/complete"""
 # run_dtw_alignments(dataset=dataset, data_processing=data_processing, resample_factor=resample_factor)
 
-"""3. Plot DTW alignment subject distance heatmap and save plot to /out/eda"""
+"""3. Plot DTW alignment subject distance heatmap and save plot to /out_private/eda"""
 # plot_distance_heatmap(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing)
 
-"""4. Plot exploratory data analysis to /out/eda"""
+"""4. Plot exploratory data analysis to /out_private/eda"""
 # plot_subject_data(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing)
 
 """5. Complete optimization evaluation, save precision@k values as MD-table"""
@@ -62,7 +62,7 @@ MD-table"""
 #                        dtw_attack=dtw_attack, result_selection_method=result_selection_method, save_weightings=True)
 
 """8. Evaluate DTW-alignment results per subject; save MD-tables with distance and rank results and realistic-rank-plots
-to /out/subject-plots"""
+to /out_private/subject-plots"""
 # subject_evaluation(dataset=dataset, resample_factor=resample_factor, data_processing=data_processing,
 #                    dtw_attack=dtw_attack, result_selection_method=result_selection_method)
 

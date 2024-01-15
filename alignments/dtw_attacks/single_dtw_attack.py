@@ -50,71 +50,63 @@ class SingleDtwAttack(DtwAttack):
 
         for subject in data_dict:
             subject_data["train"].setdefault(subject, dict())
+            label_data = data_dict[subject]
 
-            if subject != subject_id:
-                sensor_data = dict()
-                for sensor in data_dict[subject]:
-                    if sensor != "label":
-                        sensor_data.setdefault(sensor, data_dict[subject][sensor])
-                subject_data["train"].setdefault(subject, dict())
-                subject_data["train"][subject] = sensor_data
+            # Method "non-stress"
+            if method == "non-stress":
+                label_data = label_data[label_data.label == 0]  # Data for subject with label == 0 -> non-stress
 
+            # Method "stress"
             else:
-                label_data = data_dict[subject]
+                label_data = label_data[label_data.label == 1]  # Data for subject with label == 1 -> stress
 
-                # Method "non-stress"
-                if method == "non-stress":
-                    label_data = label_data[label_data.label == 0]  # Data for subject with label == 0 -> non-stress
+            data_start = label_data.iloc[:round(len(label_data) * 0.5), :]
+            data_end = label_data.iloc[round(len(label_data) * 0.5):, :]
 
-                # Method "stress"
-                else:
-                    label_data = label_data[label_data.label == 1]  # Data for subject with label == 1 -> stress
+            # Create test and train data
+            amount_remove_windows = (max(1, int(round(test_window_size * 0.5))) +
+                                     int(additional_windows / resample_factor))
+            amount_test_windows = max(1, int(test_window_size * 0.5))
 
-                data_start = label_data.iloc[:round(len(label_data) * 0.5), :]
-                data_end = label_data.iloc[round(len(label_data) * 0.5):, :]
+            # Test-window-size == 1
+            if test_window_size == 1:
+                test_1 = data_start.iloc[len(data_end):, :]
+                test_2 = data_end.iloc[:1, :]
+                remove_1 = data_start.iloc[(len(data_end) - amount_remove_windows):, :]
+                remove_2 = data_end.iloc[:amount_remove_windows, :]
 
-                # Create test and train data
-                amount_remove_windows = (max(1, int(round(test_window_size * 0.5))) +
-                                         int(additional_windows / resample_factor))
-                amount_test_windows = max(1, int(test_window_size * 0.5))
+            # Test-window-size == 2, 4, 6, ...
+            elif test_window_size % 2 == 0:
+                test_1 = data_start.iloc[(-1 * amount_test_windows):]
+                test_2 = data_end.iloc[:amount_test_windows, :]
+                remove_1 = data_start.iloc[(-1 * amount_remove_windows):]
+                remove_2 = data_end.iloc[:amount_remove_windows, :]
 
-                # Test-window-size == 1
-                if test_window_size == 1:
-                    test_1 = data_start.iloc[len(data_end):, :]
-                    test_2 = data_end.iloc[:1, :]
-                    remove_1 = data_start.iloc[(len(data_end) - amount_remove_windows):, :]
-                    remove_2 = data_end.iloc[:amount_remove_windows, :]
+            # Test-window-size = 3, 5, 7, ...
+            else:
+                test_1 = data_start.iloc[(-1 * amount_test_windows):]
+                test_2 = data_end.iloc[:(amount_test_windows + 1), :]
+                remove_1 = data_start.iloc[(-1 * (amount_remove_windows - 1)):]
+                remove_2 = data_end.iloc[:amount_remove_windows, :]
 
-                # Test-window-size == 2, 4, 6, ...
-                elif test_window_size % 2 == 0:
-                    test_1 = data_start.iloc[(-1 * amount_test_windows):]
-                    test_2 = data_end.iloc[:amount_test_windows, :]
-                    remove_1 = data_start.iloc[(-1 * amount_remove_windows):]
-                    remove_2 = data_end.iloc[:amount_remove_windows, :]
+            # Combine start and end DataFrame
+            test = pd.concat([test_1, test_2])
+            remove = pd.concat([remove_1, remove_2])
+            train = data_dict[subject].drop(remove.index)
 
-                # Test-window-size = 3, 5, 7, ...
-                else:
-                    test_1 = data_start.iloc[(-1 * amount_test_windows):]
-                    test_2 = data_end.iloc[:(amount_test_windows + 1), :]
-                    remove_1 = data_start.iloc[(-1 * (amount_remove_windows - 1)):]
-                    remove_2 = data_end.iloc[:amount_remove_windows, :]
+            # Create labels dictionary
+            for sensor in label_data:
+                test_subject = test[sensor].to_frame()
+                train_subject = train[sensor].to_frame()
 
-                # Combine start and end DataFrame
-                test = pd.concat([test_1, test_2])
-                remove = pd.concat([remove_1, remove_2])
-                train = data_dict[subject].drop(remove.index)
-
-                # Create labels dictionary
-                for sensor in label_data:
-                    test_subject = test[sensor].to_frame()
-                    train_subject = train[sensor].to_frame()
-
-                    if sensor != "label":
-                        subject_data["train"].setdefault(subject, dict())
-                        subject_data["train"][subject].setdefault(sensor, train_subject)
+                if sensor != "label":
+                    subject_data["train"].setdefault(subject, dict())
+                    subject_data["train"][subject].setdefault(sensor, train_subject)
+                    if subject == subject_id:
                         subject_data["test"].setdefault(subject, dict())
                         subject_data["test"][subject].setdefault(sensor, test_subject)
-                    else:
+                else:
+                    if subject == subject_id:
                         test_stress = (test["label"] == 1).sum()
                         test_non_stress = (test["label"] == 0).sum()
                         train_stress = (train["label"] == 1).sum()
