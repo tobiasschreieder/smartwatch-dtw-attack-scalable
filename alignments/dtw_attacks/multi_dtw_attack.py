@@ -210,7 +210,8 @@ class MultiDtwAttack(DtwAttack):
 
     def run_calculations(self, dataset: Dataset, data_processing: DataProcessing, test_window_sizes: List[int],
                          multi: int = 3, resample_factor: int = 1, additional_windows: int = 1000, n_jobs: int = -1,
-                         methods: List[str] = None, subject_ids: List[int] = None, runtime_simulation: bool = False):
+                         methods: List[str] = None, subject_ids: List[int] = None, runtime_simulation: bool = False,
+                         save_runtime: bool = False):
         """
         Run DTW-calculations with all given parameters and save results as json
         :param dataset: Specify dataset, which should be used
@@ -223,6 +224,7 @@ class MultiDtwAttack(DtwAttack):
         :param methods:  List with all method that should be used -> "non-stress" / "stress" (str)
         :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
         :param runtime_simulation: If True -> only simulate isolated attack and save runtime
+        :param save_runtime: If True -> Save runtime as .txt for all test window sizes
         """
         def parallel_calculation(current_subject_id: int) -> Dict[int, Dict[int, Dict[str, float]]]:
             """
@@ -288,7 +290,7 @@ class MultiDtwAttack(DtwAttack):
                     os.makedirs(method_path, exist_ok=True)
 
                     try:
-                        if not runtime_simulation:
+                        if not runtime_simulation and save_runtime:
                             # Save Runtime as TXT
                             runtime_file_name = "runtime_window_size=" + str(test_window_size) + ".txt"
                             runtime_save_path = os.path.join(runtime_path, runtime_file_name)
