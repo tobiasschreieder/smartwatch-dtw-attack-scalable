@@ -25,7 +25,7 @@ def load_results(dataset: Dataset, resample_factor: int, data_processing: DataPr
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param subject_id: Specify subject
     :param method: Specify method ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
@@ -55,7 +55,7 @@ def load_results(dataset: Dataset, resample_factor: int, data_processing: DataPr
         results_complete = json.loads(f.read())
         results = results_complete[str(subject_id)]
 
-        # If Multi-DTW-Attack or Slicing Attack just use mean results
+        # If Multi-DTW-Attack, Slicing-DTW-Attack or Multi-Slicing-DTW-Attack just use mean results
         if (dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name or
                 dtw_attack.name == MultiSlicingDtwAttack().name):
             multi_dtw_attack_results = dict()
@@ -91,7 +91,7 @@ def load_max_precision_results(dataset: Dataset, resample_factor: int, data_proc
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param method: Specify method
     :param test_window_size: Specify test-window-size
     :param k: Specify k
@@ -103,7 +103,8 @@ def load_max_precision_results(dataset: Dataset, resample_factor: int, data_proc
         resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
         attack_path = os.path.join(resample_path, dtw_attack.name)
         processing_path = os.path.join(attack_path, data_processing.name)
-        if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+        if (dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name or
+                dtw_attack.name == MultiSlicingDtwAttack().name):
             processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
         precision_path = os.path.join(processing_path, "precision")
         method_path = os.path.join(precision_path, str(method))
@@ -172,7 +173,7 @@ def load_best_sensor_weightings(dataset: Dataset, resample_factor: int, data_pro
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param dataset_size: Specify amount of subjects in dataset
     :return: Dictionary with sensor-weightings
     """
@@ -182,7 +183,8 @@ def load_best_sensor_weightings(dataset: Dataset, resample_factor: int, data_pro
         resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
         attack_path = os.path.join(resample_path, dtw_attack.name)
         processing_path = os.path.join(attack_path, data_processing.name)
-        if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+        if (dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name or
+                dtw_attack.name == MultiSlicingDtwAttack().name):
             processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
         evaluation_path = os.path.join(processing_path, "evaluations")
 

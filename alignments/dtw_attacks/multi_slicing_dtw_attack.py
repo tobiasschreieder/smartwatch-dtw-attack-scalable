@@ -226,21 +226,34 @@ class MultiSlicingDtwAttack(DtwAttack):
                 sensor_results = list()
                 for test_multi in results_standard[subject]:
                     results_standard[subject][test_multi].setdefault("min", dict())
+                    results_standard[subject][test_multi].setdefault("mean", dict())
                     for train_slice in results_standard[subject][test_multi]:
-                        if train_slice != "min":
+                        if train_slice != "min" and train_slice != "mean":
                             sensor_results.append(results_standard[subject][test_multi][train_slice][sensor])
                         results_standard[subject][test_multi]["min"].setdefault(sensor, round(min(sensor_results), 4))
+                        results_standard[subject][test_multi]["mean"].setdefault(sensor, round(statistics.mean(
+                            sensor_results), 4))
 
+        results = dict()
         for subject in results_standard:
+            results.setdefault(subject, dict())
             for sensor in results_standard[subject][0][0]:
-                sensor_results = list()
-                results_standard[subject].setdefault("mean", dict())
+                sensor_results_min = list()
+                sensor_results_mean = list()
+                results[subject].setdefault("min-min", dict())
+                results[subject].setdefault("min-mean", dict())
+                results[subject].setdefault("mean-mean", dict())
+                results[subject].setdefault("mean-min", dict())
                 for test_multi in results_standard[subject]:
-                    if test_multi != "mean":
-                        sensor_results.append(results_standard[subject][test_multi]["min"][sensor])
-                results_standard[subject]["mean"].setdefault(sensor, round(min(sensor_results), 4))
+                    if test_multi != "mean" and test_multi != "min":
+                        sensor_results_min.append(results_standard[subject][test_multi]["min"][sensor])
+                        sensor_results_mean.append(results_standard[subject][test_multi]["mean"][sensor])
+                results[subject]["min-min"].setdefault(sensor, round(min(sensor_results_min), 4))
+                results[subject]["min-mean"].setdefault(sensor, round(statistics.mean(sensor_results_min), 4))
+                results[subject]["mean-mean"].setdefault(sensor, round(statistics.mean(sensor_results_mean), 4))
+                results[subject]["mean-min"].setdefault(sensor, round(min(sensor_results_mean), 4))
 
-        return results_standard
+        return results
 
     def run_calculations(self, dataset: Dataset, test_window_sizes: List[int], data_processing: DataProcessing,
                          multi: int = 3, resample_factor: int = 1, additional_windows: int = 1000, n_jobs: int = -1,

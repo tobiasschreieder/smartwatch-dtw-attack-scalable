@@ -1,6 +1,7 @@
 from alignments.dtw_attacks.dtw_attack import DtwAttack
 from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
 from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack
+from alignments.dtw_attacks.multi_slicing_dtw_attack import MultiSlicingDtwAttack
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.create_md_tables import create_md_precision_windows
@@ -32,7 +33,7 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_pro
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
     :param rank_method: Specify rank-method "score" or "rank" (use beste rank-method)
     :param average_method: Specify averaging-method "mean" or "weighted-mean" (Choose best one)
@@ -60,7 +61,8 @@ def calculate_window_precisions(dataset: Dataset, resample_factor: int, data_pro
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
     attack_path = os.path.join(resample_path, dtw_attack.name)
     processing_path = os.path.join(attack_path, data_processing.name)
-    if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+    if (dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name or
+            dtw_attack.name == MultiSlicingDtwAttack().name):
         processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
     evaluations_path = os.path.join(processing_path, "evaluations")
     results_path = os.path.join(evaluations_path, "results")
@@ -154,7 +156,7 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
     :param rank_method: Specify ranking-method ("score" or "rank")
     :param average_method: Specify class averaging-method ("mean" or "weighted-mean)
@@ -258,7 +260,7 @@ def run_window_evaluation(dataset: Dataset, resample_factor: int, data_processin
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
     :param rank_method: Specify rank-method "score" or "rank" (use best performing method)
     :param average_method: Specify averaging-method "mean" or "weighted-mean" (use best performing method)
@@ -293,7 +295,8 @@ def run_window_evaluation(dataset: Dataset, resample_factor: int, data_processin
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
     attack_path = os.path.join(resample_path, dtw_attack.name)
     processing_path = os.path.join(attack_path, data_processing.name)
-    if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+    if (dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name or
+            dtw_attack.name == MultiSlicingDtwAttack().name):
         processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
     evaluations_path = os.path.join(processing_path, "evaluations")
     os.makedirs(evaluations_path, exist_ok=True)

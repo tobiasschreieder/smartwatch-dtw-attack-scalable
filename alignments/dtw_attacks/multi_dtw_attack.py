@@ -194,19 +194,21 @@ class MultiDtwAttack(DtwAttack):
                     results_standard[subject][m].setdefault(sensor, round(distance_standard, 4))
 
         # Calculate average distances
+        results = dict()
         for subject in results_standard:
-            results_standard[subject].setdefault("mean", dict())
-            results_standard[subject].setdefault("min", dict())
+            results.setdefault(subject,dict())
+            results[subject].setdefault("mean", dict())
+            results[subject].setdefault("min", dict())
             for sensor in results_standard[subject][0]:
                 sensor_results = list()
                 for m in results_standard[subject]:
                     if m != "mean" and m != "min":
                         sensor_results.append(results_standard[subject][m][sensor])
 
-                results_standard[subject]["mean"].setdefault(sensor, round(statistics.mean(sensor_results), 4))
-                results_standard[subject]["min"].setdefault(sensor, round(min(sensor_results), 4))
+                results[subject]["mean"].setdefault(sensor, round(statistics.mean(sensor_results), 4))
+                results[subject]["min"].setdefault(sensor, round(min(sensor_results), 4))
 
-        return results_standard
+        return results
 
     def run_calculations(self, dataset: Dataset, data_processing: DataProcessing, test_window_sizes: List[int],
                          multi: int = 3, resample_factor: int = 1, additional_windows: int = 1000, n_jobs: int = -1,

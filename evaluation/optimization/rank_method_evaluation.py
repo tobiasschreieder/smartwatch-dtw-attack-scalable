@@ -1,6 +1,7 @@
 from alignments.dtw_attacks.dtw_attack import DtwAttack
 from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
 from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack
+from alignments.dtw_attacks.multi_slicing_dtw_attack import MultiSlicingDtwAttack
 from evaluation.metrics.calculate_precisions import calculate_precision_combinations
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
 from evaluation.create_md_tables import create_md_precision_rank_method
@@ -28,7 +29,7 @@ def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, dat
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
     :param subject_ids: Specify subject-ids, if None: all subjects are used
     :param k_list: Specify k parameters; if None: 1, 3, 5 are used
@@ -51,7 +52,8 @@ def calculate_rank_method_precisions(dataset: Dataset, resample_factor: int, dat
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
     attack_path = os.path.join(resample_path, dtw_attack.name)
     processing_path = os.path.join(attack_path, data_processing.name)
-    if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+    if (dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name or
+            dtw_attack.name == MultiSlicingDtwAttack().name):
         processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
     evaluations_path = os.path.join(processing_path, "evaluations")
     results_path = os.path.join(evaluations_path, "results")
@@ -181,7 +183,7 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
     :return: Dictionary with results
     """
@@ -240,7 +242,7 @@ def run_rank_method_evaluation(dataset: Dataset, resample_factor: int, data_proc
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
     :param k_list: Specify k-parameters
     """
@@ -264,7 +266,8 @@ def run_rank_method_evaluation(dataset: Dataset, resample_factor: int, data_proc
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
     attack_path = os.path.join(resample_path, dtw_attack.name)
     processing_path = os.path.join(attack_path, data_processing.name)
-    if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+    if (dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name or
+            dtw_attack.name == MultiSlicingDtwAttack().name):
         processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
     evaluations_path = os.path.join(processing_path, "evaluations")
     os.makedirs(evaluations_path, exist_ok=True)

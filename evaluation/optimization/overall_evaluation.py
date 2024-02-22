@@ -12,6 +12,7 @@ from preprocessing.process_results import load_max_precision_results
 from alignments.dtw_attacks.dtw_attack import DtwAttack
 from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
 from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack
+from alignments.dtw_attacks.multi_slicing_dtw_attack import MultiSlicingDtwAttack
 from config import Config
 
 from typing import Dict, List, Union
@@ -34,7 +35,7 @@ def calculate_best_configurations(dataset: Dataset, resample_factor: int, data_p
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
     :param standardized_evaluation: If True -> Use rank-method = "score" and average-method = "weighted-mean"
     :param k_list: Specify k-parameters
@@ -99,7 +100,7 @@ def get_average_max_precision(dataset: Dataset, resample_factor: int, data_proce
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param average_method: Specify averaging method ("mean" or "weighted-mean")
     :param window: Specify test-window-size
     :param k: Specify k parameter
@@ -154,7 +155,7 @@ def calculate_optimized_precisions(dataset: Dataset, resample_factor: int, data_
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
     :param k_list: List with all k's
     :return: Dictionary with results
@@ -200,7 +201,7 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
     :return: Dictionary with results
     """
@@ -239,7 +240,7 @@ def get_best_sensor_weightings(dataset: Dataset, resample_factor: int, data_proc
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param test_window_size: Specify test-window-size
     :param methods: List with methods (non-stress, stress); if None: all methods are used
     :param k_list: Specify k parameters for precision@k; if None: 1, 3, 5 are used
@@ -273,7 +274,7 @@ def run_overall_evaluation(dataset: Dataset, resample_factor: int, data_processi
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
     :param save_weightings: If true -> Weighting will be saved as json-file
     """
@@ -304,7 +305,8 @@ def run_overall_evaluation(dataset: Dataset, resample_factor: int, data_processi
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
     attack_path = os.path.join(resample_path, dtw_attack.name)
     processing_path = os.path.join(attack_path, data_processing.name)
-    if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+    if (dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name or
+            dtw_attack.name == MultiSlicingDtwAttack().name):
         processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
     evaluations_path = os.path.join(processing_path, "evaluations")
     os.makedirs(evaluations_path, exist_ok=True)

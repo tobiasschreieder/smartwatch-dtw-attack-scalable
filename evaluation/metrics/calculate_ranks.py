@@ -4,6 +4,7 @@ from preprocessing.process_results import load_results
 from alignments.dtw_attacks.dtw_attack import DtwAttack
 from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
 from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack
+from alignments.dtw_attacks.multi_slicing_dtw_attack import MultiSlicingDtwAttack
 from config import Config
 
 from joblib import Parallel, delayed
@@ -160,7 +161,7 @@ def get_realistic_ranks(dataset: Dataset, resample_factor: int, data_processing:
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param rank_method: Specify ranking method ("rank" or "score")
     :param method: Specify method of results ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
@@ -349,7 +350,7 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param rank_method: Choose ranking method ("rank", "score", "max")
     :param combinations: Specify sensor combinations
     :param method: Specify DTW-method ("non-stress", "stress")
@@ -390,13 +391,14 @@ def get_realistic_ranks_combinations(dataset: Dataset, resample_factor: int, dat
             resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
             attack_path = os.path.join(resample_path, dtw_attack.name)
             processing_path = os.path.join(attack_path, data_processing.name)
-            if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+            if (dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name or
+                    dtw_attack.name == MultiSlicingDtwAttack().name):
                 processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
             precision_path = os.path.join(processing_path, "precision")
             method_path = os.path.join(precision_path, method)
             window_path = os.path.join(method_path, "window-size=" + str(test_window_size))
             os.makedirs(window_path, exist_ok=True)
-            path_string = ("SW-DTW_realistic-ranks-combinations_" + str(method) + "_" + str(test_window_size) + ".json")
+            path_string = ("SW-DTW_rank-comb_" + str(method) + "_" + str(test_window_size) + ".json")
 
             # Try to load existing results
             if os.path.exists(os.path.join(window_path, path_string)):

@@ -26,15 +26,3 @@ def create_noisy_data(data: np.ndarray, noise_multiplier: float = None, noise_ty
         elif noise_type == "gaussian":
             noisy_data[idx] = signal_data + np.random.normal(scale=clip*noise_multiplier, size=signal_data.shape)
     return noisy_data
-
-
-def main():
-    noise_multiplier = 1.0
-    data = np.random.rand(6, 100)
-
-    noisy_data = create_noisy_data(data, noise_multiplier)
-    print(noisy_data[0][:10] - data[0][:10])
-
-
-if __name__ == "__main__":
-    main()

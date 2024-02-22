@@ -36,7 +36,7 @@ start = time.perf_counter()
 
 """1. Calculate DTW-alignments and save results to /out_private/alignments"""
 # run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing,
-#                test_window_sizes=[i for i in range(1, 36)], resample_factor=resample_factor, multi=3)
+#               test_window_sizes=[i for i in range(1, 37)], resample_factor=resample_factor, multi=3)
 
 """2. Calculate DTW-alignments over complete sensor signals and save results to /out_private/alignments/complete"""
 # run_dtw_alignments(dataset=dataset, data_processing=data_processing, resample_factor=resample_factor)

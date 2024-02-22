@@ -135,7 +135,7 @@ def create_md_precision_combinations(dataset: Dataset, resample_factor: int, dat
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
     :param rank_method: Specify ranking-method ("rank", "score")
     :param method: Specify method ("non-stress", "stress")

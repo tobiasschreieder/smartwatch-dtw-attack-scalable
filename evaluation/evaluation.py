@@ -1,6 +1,7 @@
 from alignments.dtw_attacks.dtw_attack import DtwAttack
 from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
 from alignments.dtw_attacks.slicing_dtw_attack import SlicingDtwAttack
+from alignments.dtw_attacks.multi_slicing_dtw_attack import MultiSlicingDtwAttack
 from evaluation.metrics.calculate_precisions import calculate_max_precision
 from evaluation.metrics.calculate_ranks import run_calculate_ranks, get_realistic_ranks
 from evaluation.create_md_tables import create_md_distances, create_md_ranks, create_md_precision_combinations
@@ -35,7 +36,7 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param use_existing_weightings: If True -> Load weightings from dataset with 15 subjects
     :param n_jobs: Number of processes to use (parallelization)
     :param k_list: List with all k parameter
@@ -86,7 +87,8 @@ def run_calculate_max_precision(dataset: Dataset, resample_factor: int, data_pro
                 resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
                 attack_path = os.path.join(resample_path, dtw_attack.name)
                 processing_path = os.path.join(attack_path, data_processing.name)
-                if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+                if (dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name or
+                        dtw_attack.name == MultiSlicingDtwAttack().name):
                     processing_path = os.path.join(processing_path,
                                                    "result-selection-method=" + result_selection_method)
                 precision_path = os.path.join(processing_path, "precision")
@@ -114,7 +116,7 @@ def plot_realistic_ranks(dataset: Dataset, resample_factor: int, data_processing
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param path: Path to save boxplot
     :param method: Specify method of results ("non-stress", "stress")
     :param test_window_size: Specify test-window-size
@@ -148,7 +150,7 @@ def subject_evaluation(dataset: Dataset, resample_factor: int, data_processing: 
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-Attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param methods: List with methods ("non-stress", "stress")
     :param plot_ranks: If True: realistic ranks will be plotted and saved
     :param test_window_sizes: List with test-window-sizes
@@ -165,7 +167,8 @@ def subject_evaluation(dataset: Dataset, resample_factor: int, data_processing: 
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
     attack_path = os.path.join(resample_path, dtw_attack.name)
     processing_path = os.path.join(attack_path, data_processing.name)
-    if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+    if (dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name or
+            dtw_attack.name == MultiSlicingDtwAttack().name):
         processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
     subject_plot_path = os.path.join(processing_path, "subject-plots")
 
@@ -233,7 +236,7 @@ def precision_evaluation(dataset: Dataset, resample_factor: int, data_processing
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param n_jobs: Number of processes to use (parallelization)
     :param methods: List with methods ("non-stress", "stress")
     :param test_window_sizes: List with test-window_sizes
@@ -253,7 +256,8 @@ def precision_evaluation(dataset: Dataset, resample_factor: int, data_processing
     resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
     attack_path = os.path.join(resample_path, dtw_attack.name)
     processing_path = os.path.join(attack_path, data_processing.name)
-    if dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name:
+    if (dtw_attack.name == MultiDtwAttack().name or dtw_attack.name == SlicingDtwAttack().name or
+            dtw_attack.name == MultiSlicingDtwAttack().name):
         processing_path = os.path.join(processing_path, "result-selection-method=" + result_selection_method)
     precision_path = os.path.join(processing_path, "precision")
 
@@ -300,7 +304,7 @@ def run_optimization_evaluation(dataset: Dataset, resample_factor: int, data_pro
     :param data_processing: Specify type of data-processing
     :param dtw_attack: Specify DTW-attack
     :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
-    SlicingDTWAttack ("min" or "mean)
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
     :param standardized_evaluation: If True -> Use rank-method = "score" and average-method = "weighted-mean"
     :param n_jobs: Number of processes to use (parallelization)
     :param k_list: Specify k-parameters
