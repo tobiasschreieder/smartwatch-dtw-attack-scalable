@@ -21,7 +21,7 @@ cfg = Config.get()
 
 def run_dtw_attack(dtw_attack: DtwAttack, dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
                    test_window_sizes: List[int], multi: int = 3, additional_windows: int = 1000, n_jobs: int = -1,
-                   methods: List[str] = None, subject_ids: List[int] = None):
+                   save_runtime: bool = False, methods: List[str] = None, subject_ids: List[int] = None):
     """
     Run DTW-attack with all given parameters and save results as json
     :param dtw_attack: Specify DTW-attack (SingleDtwAttack, MultiDtwAttack, SlicingDtwAttack)
@@ -32,6 +32,7 @@ def run_dtw_attack(dtw_attack: DtwAttack, dataset: Dataset, resample_factor: int
     :param multi: Specify number of combined single attacks
     :param additional_windows: Specify amount of additional windows to be removed around test-window
     :param n_jobs: Number of processes to use (parallelization)
+    :param save_runtime: If True -> Save runtime as .txt for all test window sizes
     :param methods: List with all method that should be used -> "non-stress" / "stress" (str)
     :param subject_ids: List with all subjects that should be used as test subjects (int) -> None = all subjects
     """
@@ -40,32 +41,33 @@ def run_dtw_attack(dtw_attack: DtwAttack, dataset: Dataset, resample_factor: int
         single_dtw_attack = SingleDtwAttack()
         single_dtw_attack.run_calculations(dataset=dataset, test_window_sizes=test_window_sizes,
                                            resample_factor=resample_factor, data_processing=data_processing,
-                                           additional_windows=additional_windows, n_jobs=n_jobs, methods=methods,
-                                           subject_ids=subject_ids)
+                                           additional_windows=additional_windows, n_jobs=n_jobs,
+                                           save_runtime=save_runtime, methods=methods, subject_ids=subject_ids)
 
     elif dtw_attack.name == MultiDtwAttack().name:
         print("Starting Multi-DTW-Attack!")
         multi_dtw_attack = MultiDtwAttack()
         multi_dtw_attack.run_calculations(dataset=dataset, test_window_sizes=test_window_sizes,
                                           data_processing=data_processing, resample_factor=resample_factor,
-                                          multi=multi, additional_windows=additional_windows, n_jobs=n_jobs,
-                                          methods=methods, subject_ids=subject_ids)
+                                          multi=multi, additional_windows=additional_windows,
+                                          save_runtime=save_runtime,n_jobs=n_jobs, methods=methods,
+                                          subject_ids=subject_ids)
 
     elif dtw_attack.name == SlicingDtwAttack().name:
         print("Starting Slicing-DTW-Attack!")
         slicing_dtw_attack = SlicingDtwAttack()
         slicing_dtw_attack.run_calculations(dataset=dataset, test_window_sizes=test_window_sizes,
                                             resample_factor=resample_factor, data_processing=data_processing,
-                                            additional_windows=additional_windows, n_jobs=n_jobs, methods=methods,
-                                            subject_ids=subject_ids)
+                                            additional_windows=additional_windows, n_jobs=n_jobs,
+                                            save_runtime=save_runtime, methods=methods, subject_ids=subject_ids)
 
     elif dtw_attack.name == MultiSlicingDtwAttack().name:
         print("Starting Multi-Slicing-DTW-Attack!")
         multi_slicing_dtw_attack = MultiSlicingDtwAttack()
         multi_slicing_dtw_attack.run_calculations(dataset=dataset, test_window_sizes=test_window_sizes, multi=multi,
                                                   resample_factor=resample_factor, data_processing=data_processing,
-                                                  additional_windows=additional_windows, n_jobs=n_jobs, methods=methods,
-                                                  subject_ids=subject_ids)
+                                                  additional_windows=additional_windows, n_jobs=n_jobs,
+                                                  save_runtime=save_runtime, methods=methods, subject_ids=subject_ids)
 
     else:
         print("Please specify a valid DTW-Attack!")
