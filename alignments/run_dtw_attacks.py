@@ -167,5 +167,5 @@ def simulate_isolated_dtw_attack(dataset: Dataset, resample_factor: int, data_pr
 
     # Multi-Slicing-DTW-Attack
     multi_slicing_dtw_attack = MultiSlicingDtwAttack()
-    result_selection_method = "min"
+    result_selection_method = "min-min"
     run_isolated_attack(dtw_attack=multi_slicing_dtw_attack)
