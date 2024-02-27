@@ -192,45 +192,53 @@ def run_noisy_attacks(dtw_attack: DtwAttack, data_processing: DataProcessing, re
     :param runs: Specify number of runs to repeat DTW attacks and average precision@1 scores
     :param n_jobs: Number of processes to use (parallelization)
     """
+    wesad = Wesad(dataset_size=15)
+
+    # Try to read best-configurations for ranks, classes, sensors and windows from WESAD dataset
+    try:
+        best_configuration = calculate_best_configurations(dataset=wesad, resample_factor=resample_factor,
+                                                           data_processing=data_processing, dtw_attack=dtw_attack,
+                                                           result_selection_method=result_selection_method,
+                                                           n_jobs=n_jobs)
+    # Generate best-configurations if not available
+    except KeyError:
+        print("Couldn't load best configurations for " + str(dtw_attack.name) + " with WESAD data set!" +
+              "Starting DTW attack...")
+
+        Wesad(dataset_size=15)
+        test_window_sizes = dtw_attack.windows
+
+        run_dtw_attack(dtw_attack=dtw_attack, dataset=wesad, data_processing=data_processing,
+                       test_window_sizes=test_window_sizes, resample_factor=resample_factor, multi=3)
+        run_optimization_evaluation(dataset=wesad, resample_factor=resample_factor,
+                                    data_processing=data_processing,
+                                    dtw_attack=dtw_attack, result_selection_method=result_selection_method)
+        run_calculate_max_precision(dataset=wesad, resample_factor=resample_factor,
+                                    data_processing=data_processing,
+                                    dtw_attack=dtw_attack, result_selection_method=result_selection_method,
+                                    use_existing_weightings=False)
+        run_overall_evaluation(dataset=wesad, resample_factor=resample_factor,
+                               data_processing=data_processing, dtw_attack=dtw_attack,
+                               result_selection_method=result_selection_method, save_weightings=True)
+
+        best_configuration = calculate_best_configurations(dataset=wesad, resample_factor=resample_factor,
+                                                           data_processing=data_processing, dtw_attack=dtw_attack,
+                                                           result_selection_method=result_selection_method,
+                                                           n_jobs=n_jobs)
+
+    test_window_sizes = [best_configuration["window"]]
+    dtw_attack.windows = test_window_sizes
+
+    overall_results = calculate_optimized_precisions(dataset=wesad, resample_factor=resample_factor,
+                                                     data_processing=data_processing, dtw_attack=dtw_attack,
+                                                     result_selection_method=result_selection_method,
+                                                     n_jobs=n_jobs)
+    precision_at_1 = overall_results[1]["results"]
+
     results = dict()
+    results.setdefault(0.0, {"mean": precision_at_1, "standard-deviation": 0.0})
     for noise_multiplier in noise_multipliers:
-        wesad = Wesad(dataset_size=15)
         results.setdefault(noise_multiplier, dict())
-
-        # Try to read best-configurations for ranks, classes, sensors and windows from WESAD dataset
-        try:
-            best_configuration = calculate_best_configurations(dataset=wesad, resample_factor=resample_factor,
-                                                               data_processing=data_processing, dtw_attack=dtw_attack,
-                                                               result_selection_method=result_selection_method,
-                                                               n_jobs=n_jobs)
-        # Generate best-configurations if not available
-        except KeyError:
-            print("Couldn't load best configurations for " + str(dtw_attack.name) + " with WESAD data set!" +
-                  "Starting DTW attack...")
-
-            Wesad(dataset_size=15)
-            test_window_sizes = dtw_attack.windows
-
-            run_dtw_attack(dtw_attack=dtw_attack, dataset=wesad, data_processing=data_processing,
-                           test_window_sizes=test_window_sizes, resample_factor=resample_factor, multi=3)
-            run_optimization_evaluation(dataset=wesad, resample_factor=resample_factor,
-                                        data_processing=data_processing,
-                                        dtw_attack=dtw_attack, result_selection_method=result_selection_method)
-            run_calculate_max_precision(dataset=wesad, resample_factor=resample_factor,
-                                        data_processing=data_processing,
-                                        dtw_attack=dtw_attack, result_selection_method=result_selection_method,
-                                        use_existing_weightings=False)
-            run_overall_evaluation(dataset=wesad, resample_factor=resample_factor,
-                                   data_processing=data_processing, dtw_attack=dtw_attack,
-                                   result_selection_method=result_selection_method, save_weightings=True)
-
-            best_configuration = calculate_best_configurations(dataset=wesad, resample_factor=resample_factor,
-                                                               data_processing=data_processing, dtw_attack=dtw_attack,
-                                                               result_selection_method=result_selection_method,
-                                                               n_jobs=n_jobs)
-
-        test_window_sizes = [best_configuration["window"]]
-        dtw_attack.windows = test_window_sizes
 
         for run in range(1, runs + 1):
             print("Noise Multiplier: " + str(noise_multiplier) + "; Run: " + str(run))
