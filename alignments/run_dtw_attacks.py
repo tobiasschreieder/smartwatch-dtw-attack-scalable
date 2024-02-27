@@ -1,7 +1,11 @@
 from evaluation.metrics.calculate_ranks import get_realistic_ranks_combinations
-from evaluation.optimization.overall_evaluation import calculate_best_configurations
+from evaluation.optimization.overall_evaluation import calculate_best_configurations, run_overall_evaluation, \
+    calculate_optimized_precisions
+from evaluation.evaluation import run_optimization_evaluation, run_calculate_max_precision
 from preprocessing.data_processing.data_processing import DataProcessing
 from preprocessing.datasets.dataset import Dataset
+from preprocessing.datasets.load_wesad import Wesad
+from preprocessing.datasets.load_wesad_private import WesadPrivate
 from alignments.dtw_attacks.dtw_attack import DtwAttack
 from alignments.dtw_attacks.single_dtw_attack import SingleDtwAttack
 from alignments.dtw_attacks.multi_dtw_attack import MultiDtwAttack
@@ -14,6 +18,9 @@ from config import Config
 from typing import List
 import time
 import os
+import shutil
+import json
+import statistics
 
 
 cfg = Config.get()
@@ -24,7 +31,7 @@ def run_dtw_attack(dtw_attack: DtwAttack, dataset: Dataset, resample_factor: int
                    save_runtime: bool = False, methods: List[str] = None, subject_ids: List[int] = None):
     """
     Run DTW-attack with all given parameters and save results as json
-    :param dtw_attack: Specify DTW-attack (SingleDtwAttack, MultiDtwAttack, SlicingDtwAttack)
+    :param dtw_attack: Specify DTW-attack (SingleDtwAttack, MultiDtwAttack, SlicingDtwAttack, MultiSlicingDtwAttack)
     :param dataset: Specify dataset, which should be used
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
@@ -169,3 +176,104 @@ def simulate_isolated_dtw_attack(dataset: Dataset, resample_factor: int, data_pr
     multi_slicing_dtw_attack = MultiSlicingDtwAttack()
     result_selection_method = "min-min"
     run_isolated_attack(dtw_attack=multi_slicing_dtw_attack)
+
+
+def run_noisy_attacks(dtw_attack: DtwAttack, data_processing: DataProcessing, resample_factor: int,
+                      result_selection_method: str, noise_multipliers: list, runs: int = 10, n_jobs: int = -1):
+    """
+    Run simulation of noisy DTW attacks with repetitions for all specified noise multipliers;
+    Save average precision@1 results and standard deviations
+    :param dtw_attack: Specify DTW-attack (SingleDtwAttack, MultiDtwAttack, SlicingDtwAttack, MultiSlicingDtwAttack)
+    :param data_processing: Specify type of data-processing
+    :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
+    :param result_selection_method: Choose selection method for multi / slicing results for MultiDTWAttack and
+    SlicingDTWAttack ("min" or "mean") MultiSlicingDTWAttack: combination e.g."min-mean"
+    :param noise_multipliers: List with all noise multipliers (scale-parameter of laplace distribution) > 0.0
+    :param runs: Specify number of runs to repeat DTW attacks and average precision@1 scores
+    :param n_jobs: Number of processes to use (parallelization)
+    """
+    results = dict()
+    for noise_multiplier in noise_multipliers:
+        wesad = Wesad(dataset_size=15)
+        results.setdefault(noise_multiplier, dict())
+
+        # Try to read best-configurations for ranks, classes, sensors and windows from WESAD dataset
+        try:
+            best_configuration = calculate_best_configurations(dataset=wesad, resample_factor=resample_factor,
+                                                               data_processing=data_processing, dtw_attack=dtw_attack,
+                                                               result_selection_method=result_selection_method,
+                                                               n_jobs=n_jobs)
+        # Generate best-configurations if not available
+        except KeyError:
+            print("Couldn't load best configurations for " + str(dtw_attack.name) + " with WESAD data set!" +
+                  "Starting DTW attack...")
+
+            Wesad(dataset_size=15)
+            test_window_sizes = dtw_attack.windows
+
+            run_dtw_attack(dtw_attack=dtw_attack, dataset=wesad, data_processing=data_processing,
+                           test_window_sizes=test_window_sizes, resample_factor=resample_factor, multi=3)
+            run_optimization_evaluation(dataset=wesad, resample_factor=resample_factor,
+                                        data_processing=data_processing,
+                                        dtw_attack=dtw_attack, result_selection_method=result_selection_method)
+            run_calculate_max_precision(dataset=wesad, resample_factor=resample_factor,
+                                        data_processing=data_processing,
+                                        dtw_attack=dtw_attack, result_selection_method=result_selection_method,
+                                        use_existing_weightings=False)
+            run_overall_evaluation(dataset=wesad, resample_factor=resample_factor,
+                                   data_processing=data_processing, dtw_attack=dtw_attack,
+                                   result_selection_method=result_selection_method, save_weightings=True)
+
+            best_configuration = calculate_best_configurations(dataset=wesad, resample_factor=resample_factor,
+                                                               data_processing=data_processing, dtw_attack=dtw_attack,
+                                                               result_selection_method=result_selection_method,
+                                                               n_jobs=n_jobs)
+
+        test_window_sizes = [best_configuration["window"]]
+        dtw_attack.windows = test_window_sizes
+
+        for run in range(1, runs + 1):
+            print("Noise Multiplier: " + str(noise_multiplier) + "; Run: " + str(run))
+            # Generating new dataset in each run
+            dataset = WesadPrivate(dataset_size=15, noise_multiplier=noise_multiplier)
+
+            # DTW attacks and evaluation
+            run_dtw_attack(dtw_attack=dtw_attack, dataset=dataset, data_processing=data_processing,
+                           test_window_sizes=test_window_sizes, resample_factor=resample_factor, multi=3)
+            run_optimization_evaluation(dataset=dataset, resample_factor=resample_factor,
+                                        data_processing=data_processing, dtw_attack=dtw_attack,
+                                        result_selection_method=result_selection_method)
+            overall_results = calculate_optimized_precisions(dataset=dataset, resample_factor=resample_factor,
+                                                             data_processing=data_processing, dtw_attack=dtw_attack,
+                                                             result_selection_method=result_selection_method,
+                                                             n_jobs=n_jobs)
+
+            precision_at_1 = overall_results[1]["results"]
+            results[noise_multiplier].setdefault(run, precision_at_1)
+
+            # Paths
+            data_path = os.path.join(cfg.out_dir, dataset.name + "_" + str(len(dataset.subject_list)))
+            resample_path = os.path.join(data_path, "resample-factor=" + str(resample_factor))
+            attack_path = os.path.join(resample_path, dtw_attack.name)
+            processing_path = os.path.join(attack_path, data_processing.name)
+
+            # Delete run results and save results for last run
+            if run < runs:
+                shutil.rmtree(path=processing_path)
+                dataset_path = os.path.join(cfg.data_dir, "wesad_p" + str(noise_multiplier) + "_15.pickle")
+                os.remove(path=dataset_path)
+
+    for np in results:
+        if np != "mean" and np != "standard-deviation":
+            np_results = results[np].values()
+            results[np].setdefault("mean", round(statistics.mean(np_results), 3))
+            results[np].setdefault("standard-deviation", round(statistics.stdev(np_results), 3))
+
+    save_path = os.path.join(cfg.out_dir, "Privacy-Usability")
+    os.makedirs(save_path, exist_ok=True)
+
+    filename = "privacy_results_" + dtw_attack.name + ".json"
+    with open(os.path.join(save_path, filename), "w") as outfile:
+        json.dump(results, outfile)
+
+
