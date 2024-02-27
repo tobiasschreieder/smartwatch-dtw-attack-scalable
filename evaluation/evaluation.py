@@ -19,6 +19,7 @@ from joblib import Parallel, delayed
 from typing import List, Dict, Union
 import os
 import matplotlib.pyplot as plt
+import pandas as pd
 import json
 
 
@@ -340,3 +341,57 @@ def run_optimization_evaluation(dataset: Dataset, resample_factor: int, data_pro
                           dtw_attack=dtw_attack, result_selection_method=result_selection_method, n_jobs=n_jobs,
                           rank_method=best_configurations["rank_method"], average_method=best_configurations["class"],
                           sensor_combination=best_configurations["sensor"], k_list=k_list)
+
+
+def run_evaluation_privacy_usability(dtw_attacks: List[DtwAttack]):
+    """
+    Evaluation privacy vs. usability results; Create PDF including precision@1 results for DTW-Attacks and
+    Stress Detection f1 scores for different noise-multipliers
+    :param dtw_attacks: Specify all DTW-Attacks that used be included
+    """
+    privacy_path = os.path.join(cfg.out_dir, "Privacy-Usability")
+
+    stress_detection = pd.read_csv(os.path.join(privacy_path, "5-LOSO_15real_noised.csv"), index_col="Unnamed: 0")
+    stress_detection = stress_detection.set_index("noise multiplier")
+
+    labels = list()
+    attack_mean = dict()
+    attack_stdev = dict()
+    for dtw_attack in dtw_attacks:
+        attack_name = dtw_attack.name
+        labels.append(attack_name)
+
+        with open(os.path.join(privacy_path, "privacy_results_" + attack_name + ".json")) as json_file:
+            attack_results = json.load(json_file)
+
+        attack_mean.setdefault(attack_name, list())
+        attack_stdev.setdefault(attack_name, list())
+        for np in attack_results:
+            attack_mean[attack_name].append(attack_results[np]["mean"])
+            attack_stdev[attack_name].append(attack_results[np]["standard-deviation"])
+        attack_mean.setdefault("Stress-Detection", stress_detection["stress f1"].to_list())
+        attack_stdev.setdefault("Stress-Detection", stress_detection["std"].to_list())
+
+    labels.append("Stress-Detection")
+    noise_multipliers = [float(i) for i in attack_results.keys()]
+    privacy_results = pd.DataFrame(columns=["noise-multiplier", "attack", "mean", "standard-deviation"])
+    for attack in labels:
+        for i in range(0, len(attack_mean[attack])):
+            new_row = pd.DataFrame({
+                "noise-multiplier": [noise_multipliers[i]],
+                "attack": [attack],
+                "mean": [attack_mean[attack][i]],
+                "standard-deviation": [attack_stdev[attack][i]]
+            })
+            privacy_results = pd.concat([privacy_results, new_row], axis=0)
+
+    fig, ax = plt.subplots()
+    for key, group in privacy_results.groupby("attack"):
+        group.plot('noise-multiplier', 'mean', yerr='standard-deviation',
+                   label=key, ax=ax)
+    plt.legend(labels, loc="center right", bbox_to_anchor=(1.5, 0.5))
+    # plt.title(label="Re-Identification vs. Stress-Detection", loc="center")
+    plt.ylabel("p@1 / f1")
+    plt.xlabel('noise-multiplier')
+    plt.savefig(os.path.join(privacy_path, "privacy_vs_usability.pdf"), format="pdf", bbox_inches="tight")
+    plt.show()
