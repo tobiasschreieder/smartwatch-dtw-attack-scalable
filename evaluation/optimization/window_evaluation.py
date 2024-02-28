@@ -188,15 +188,18 @@ def calculate_best_k_parameters(dataset: Dataset, resample_factor: int, data_pro
     return best_k_parameters
 
 
-def plot_window_precisions(results: Dict[int, Dict[float, float]], k_list: List[int], evaluations_path: os.path):
+def plot_window_precisions(results: Dict[int, Dict[float, float]], k_list: List[int], evaluations_path: os.path,
+                           dtw_attack: DtwAttack):
     """
     Plot precision@k over window sizes
     :param results: Results with precision values per class
     :param k_list: List with all k for precision@k that should be considered
     :param evaluations_path: Specify path to save plot
+    :param dtw_attack: Specify DTW-attack
     """
-    plt.title(label="Precision@k over window-sizes", loc="center")
-    plt.ylabel('precision@k')
+    plt.title(label=dtw_attack.name, loc="center")
+    plt.ylim(0.0, 1.0)
+    plt.ylabel('p@k')
     plt.xlabel('window-size')
     for k in k_list:
         data = results[k]
@@ -309,4 +312,4 @@ def run_window_evaluation(dataset: Dataset, resample_factor: int, data_processin
     print("SW-DTW evaluation for windows saved at: " + str(evaluations_path))
 
     # Plot precision@k over window sizes
-    plot_window_precisions(results=results, k_list=[1, 3, 5], evaluations_path=evaluations_path)
+    plot_window_precisions(results=results, k_list=[1, 3, 5], evaluations_path=evaluations_path, dtw_attack=dtw_attack)

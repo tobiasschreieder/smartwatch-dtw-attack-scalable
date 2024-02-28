@@ -373,6 +373,7 @@ def run_evaluation_privacy_usability(dtw_attacks: List[DtwAttack]):
         attack_stdev.setdefault("Stress-Detection", stress_detection["std"].to_list())
 
     labels.append("Stress-Detection")
+    labels = sorted(labels)
     noise_multipliers = [float(i) for i in attack_results.keys()]
     privacy_results = pd.DataFrame(columns=["noise-multiplier", "attack", "mean", "standard-deviation"])
     for attack in labels:
@@ -389,7 +390,7 @@ def run_evaluation_privacy_usability(dtw_attacks: List[DtwAttack]):
     for key, group in privacy_results.groupby("attack"):
         group.plot('noise-multiplier', 'mean', yerr='standard-deviation',
                    label=key, ax=ax)
-    plt.legend(labels, loc="center right", bbox_to_anchor=(1.5, 0.5))
+    plt.legend(labels, loc="upper right")  # bbox_to_anchor=(1.5, 0.5)
     # plt.title(label="Re-Identification vs. Stress-Detection", loc="center")
     plt.ylabel("p@1 / f1")
     plt.xlabel('noise-multiplier')
