@@ -19,7 +19,7 @@ def load_results(dataset: Dataset, resample_factor: int, data_processing: DataPr
                  result_selection_method: str, subject_id: int, method: str, test_window_size: int,
                  runtime_simulation: bool = False) -> Dict[str, Dict[str, float]]:
     """
-    Load DTW-attack results from ../out/alignments/
+    Load DTW-attack results from ../out_weighted/alignments/
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing
@@ -126,7 +126,7 @@ def load_max_precision_results(dataset: Dataset, resample_factor: int, data_proc
 def load_complete_alignment_results(dataset: Dataset, resample_factor: int, data_processing: DataProcessing,
                                     subject_id: int) -> Dict[str, float]:
     """
-    Load complete alignment results from ../out/alignments/complete
+    Load complete alignment results from ../out_weighted/alignments/complete
     :param dataset: Specify dataset
     :param resample_factor: Specify down-sample factor (1: no down-sampling; 2: half-length)
     :param data_processing: Specify type of data-processing

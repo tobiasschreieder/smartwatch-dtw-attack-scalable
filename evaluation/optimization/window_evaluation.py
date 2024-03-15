@@ -198,14 +198,15 @@ def plot_window_precisions(results: Dict[int, Dict[float, float]], k_list: List[
     :param dtw_attack: Specify DTW-attack
     """
     plt.title(label=dtw_attack.name, loc="center")
-    plt.ylim(0.0, 1.0)
+    plt.ylim(0.0, 1.05)
     plt.ylabel('p@k')
-    plt.xlabel('window-size')
+    plt.xlabel('attack window size')
+    plt.subplots_adjust(left=0.09, right=0.98, bottom=0.1, top=0.93)
     for k in k_list:
         data = results[k]
         x, y = zip(*sorted(data.items()))
         plt.plot(x, y, label="k=" + str(k))
-    plt.legend()
+    plt.legend(loc="upper right")
 
     try:
         plt.savefig(fname=os.path.join(evaluations_path, "SW-DTW_evaluation_windows.pdf"), format="pdf")
