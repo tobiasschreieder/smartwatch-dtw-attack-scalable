@@ -1,22 +1,16 @@
 import numpy as np
 
-"""
-Add noise to data based on multiplier or epsilon
-
-Args:
-    data (np.ndarray): data to noise, in two dimensional np.array of signals e.g. (6,100) for the six signals and 100 
-    data points each.
-    noise_multiplier (float): wanted noise_multiplier for the random distribution.
-    noise_type (str of "laplace" or "gaussian"): wanted noise distribution.
-    clip_max (bool): clipping to max of each signal for dp, if false clip to 1 as sensitivity of similarity func.
-
-Returns:
-    np.ndarray: noised data.
-"""
-
 
 def create_noisy_data(data: np.ndarray, noise_multiplier: float = None, noise_type: str = "laplace",
-                      clip_max: bool = False):
+                      clip_max: bool = False) -> np.array:
+    """
+    Add noise to data based on multiplier or epsilon
+    :param data: Data to noise, two dimensional np.array of signals e.g. (6,100) for six signals and 100 data points
+    :param noise_multiplier: Scale parameter of Laplace distribution -> Specify level of noise >= 0.0
+    :param noise_type: Noise distribution ("laplace" or "gaussian")
+    :param clip_max: Clipping to max of each signal for dp, if false clip to 1 as sensitivity of similarity func.
+    :return: noised data
+    """
     noisy_data = np.empty(data.shape)
     for idx, signal_data in enumerate(data):
         # 1 as sensitivity of similarity func or max of each signal as clip for DP
