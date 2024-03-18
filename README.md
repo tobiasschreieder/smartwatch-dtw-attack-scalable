@@ -64,7 +64,7 @@ pip install -r requirements.txt
 ## Attack Framework
 The following figure shows an overview of the eight-stage attack framework. The functionality and the parameters to 
 be specified for the individual stages are briefly described in the following sections. All further information is 
-explained in detail in the attached master's thesis.
+explained in detail in the attached [master's thesis](./reports/masters_thesis_tobias_schreieder.pdf).
 ![attack_framework](reports/images/framework_overview.png)
 
 ## Data Sets
